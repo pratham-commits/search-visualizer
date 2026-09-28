@@ -258,16 +258,16 @@ const deadEnd: Problem<string, string> = {
 };
 
 describe("depth-limited search on the wall grid", () => {
-  it("returns cutoff when the goal is deeper than L, without expanding the capped nodes", () => {
+  it("expands nodes at the limit and cuts off the children past it", () => {
     const limited = depthLimitedSearch(grid, 1);
     expect(limited.status).toBe("cutoff");
-    expect(expanded(limited.trace)).toEqual(["0,0"]);
+    expect(expanded(limited.trace)).toEqual(["0,0", "1,0", "0,1"]);
     const capped = limited.trace.filter((event) => event.type === "depth-cutoff");
-    expect(capped.map((event) => event.stateKey)).toEqual(["1,0", "0,1"]);
+    expect(capped.map((event) => event.stateKey)).toEqual(["2,0", "0,2"]);
     expect(plainEnglish(capped[0])).toBe(
-      "Node 1,0 is at depth 1 = the limit 1, so we do not expand it (cutoff).",
+      "Node 2,0 is at depth 2, past the limit 1, so we do not expand it (cutoff).",
     );
-    expect(examNotation(capped[0])).toContain("depth 1, limit 1");
+    expect(examNotation(capped[0])).toContain("depth 2, limit 1");
     expect(examNotation(capped[0])).toContain("Outcome: cutoff");
     expect(limited.trace.at(-1)?.type).toBe("cutoff");
   });
@@ -292,7 +292,8 @@ describe("depth-limited search on the wall grid", () => {
     expect(missed.status).toBe("failure");
     expect(expanded(missed.trace)).toEqual(["S", "A"]);
     expect(examNotation(missed.trace.at(-1)!)).toContain("Outcome: failure");
-    expect(depthLimitedSearch(deadEnd, 1).status).toBe("cutoff");
+    expect(depthLimitedSearch(deadEnd, 0).status).toBe("cutoff");
+    expect(depthLimitedSearch(deadEnd, 1).status).toBe("failure");
   });
 });
 
@@ -339,7 +340,7 @@ describe("iterative deepening on the wall grid", () => {
     const restarts = result.trace
       .map((event, index) => (event.type === "restart" ? index : -1))
       .filter((index) => index >= 0);
-    expect(restarts.length).toBe(6);
+    expect(restarts.length).toBe(5);
     const before = frameAt(result.trace, restarts[2] - 1);
     const cleared = frameAt(result.trace, restarts[2]);
     expect(before.treeEdges.length).toBeGreaterThan(0);
@@ -347,7 +348,7 @@ describe("iterative deepening on the wall grid", () => {
     expect(cleared.cutoff).toEqual([]);
     expect(cleared.limit).toBe(2);
     const endOfSecond = frameAt(result.trace, restarts[3] - 1);
-    expect(endOfSecond.reexpanded).toBe(1);
+    expect(endOfSecond.reexpanded).toBe(3);
   });
 });
 

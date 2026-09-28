@@ -216,7 +216,7 @@ describe("trace", () => {
     expect(result.trace.some((event) => event.type === "frontier-replace")).toBe(true);
   });
 
-  it("does not expand a node at the depth limit", () => {
+  it("expands a node at the depth limit and cuts off its children", () => {
     const result = search(branch, new LifoFrontier(branch.stateKey), policy({
       mode: "tree",
       isGoalWhen: "pop",
@@ -224,8 +224,9 @@ describe("trace", () => {
       firstActionFirst: true,
     }));
     expect(result.status).toBe("cutoff");
-    expect(result.trace.some((event) => event.type === "expand")).toBe(false);
-    expect(result.trace.some((event) => event.type === "depth-cutoff")).toBe(true);
+    expect(result.trace.filter((event) => event.type === "expand").map((event) => event.stateKey)).toEqual(["S"]);
+    const capped = result.trace.filter((event) => event.type === "depth-cutoff");
+    expect(capped.map((event) => event.stateKey).sort()).toEqual(["A", "B", "C"]);
   });
 });
 

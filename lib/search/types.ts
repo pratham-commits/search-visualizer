@@ -24,8 +24,9 @@ export type ReplaceFrontier = "never" | "if-lower-f";
  * The frontier is the only data structure that changes between algorithms.
  * Tree-like vs graph, when IS-GOAL runs, and whether a cheaper frontier
  * node is replaced are book behaviors a queue cannot encode, so they sit
- * here beside it. `depthLimit` is depth-limited search: a node at that
- * depth is tested with IS-GOAL and then not expanded. `firstActionFirst` pushes
+ * here beside it. `depthLimit` is depth-limited search: a popped node
+ * deeper than the limit is not expanded. A node at the limit is expanded.
+ * `firstActionFirst` pushes
  * children so the first action is popped first, matching aima-python's
  * recursive depth-limited search.
  */

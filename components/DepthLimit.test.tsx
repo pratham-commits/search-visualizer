@@ -42,7 +42,7 @@ describe("depth-limited rendering", () => {
       .map((element) => element.getAttribute("data-cell"))
       .sort();
     expect(cutoff).toEqual([...end.cutoff].sort());
-    expect(cutoff).toEqual(["0,1", "1,0"]);
+    expect(cutoff).toEqual(["0,2", "2,0"]);
     for (const key of cutoff) {
       const cell = view.container.querySelector(`[data-cell="${key}"]`);
       expect(cell?.getAttribute("data-reached")).toBe("false");

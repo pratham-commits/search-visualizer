@@ -247,7 +247,7 @@ export function search<S, A>(
 
     if (
       policy.depthLimit !== undefined &&
-      node.depth >= policy.depthLimit
+      node.depth > policy.depthLimit
     ) {
       cutoffOccurred = true;
       push(

@@ -237,7 +237,7 @@ export function plainEnglish(event: StepEvent, mode: RomaniaLabelMode = "cities"
       }
       return "Stopped at the expansion safety cap. IS-CYCLE is what prevents cycles; this cap is only a backstop.";
     case "depth-cutoff":
-      return `Node ${place(event.stateKey, mode)} is at depth ${event.depth} = the limit ${event.limit}, so we do not expand it (cutoff).`;
+      return `Node ${place(event.stateKey, mode)} is at depth ${event.depth}, past the limit ${event.limit}, so we do not expand it (cutoff).`;
     case "restart":
       return `Iteration restarts from the start with limit ${event.limit}. The previous tree is cleared.`;
   }
