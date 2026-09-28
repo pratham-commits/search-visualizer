@@ -244,7 +244,9 @@ export function SearchBench() {
                   ? `stopped · value ${frame.objective}`
                   : `value ${frame.objective ?? "—"}`
             : frame.status === "success"
-            ? `cost ${frame.cost}`
+            ? family === "bfs" || family === "dfs" || family === "dls" || family === "ids"
+              ? `length ${Math.max(0, frame.path.length - 1)} steps`
+              : `cost ${frame.cost}`
             : frame.status === "cutoff"
               ? "cut off"
               : frame.status === "failure"
@@ -518,11 +520,6 @@ export function SearchBench() {
             />
           )}
         </div>
-        {labels.orderBy === "h" ? (
-          <p className="label-note" data-order-note="">
-            Frontier order uses h. g is the cost paid so far.
-          </p>
-        ) : null}
         </>
         ) : (
           <p className="not-ready">This algorithm is not on the sheet yet.</p>

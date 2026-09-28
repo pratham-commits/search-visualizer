@@ -9,6 +9,55 @@ import {
   type StepEvent,
 } from "@/lib/search";
 
+function keyValue(event: StepEvent, field: "g" | "h" | "f"): string {
+  if (
+    event.type !== "pop" &&
+    event.type !== "seed" &&
+    event.type !== "generate" &&
+    event.type !== "frontier-add" &&
+    event.type !== "frontier-replace"
+  ) {
+    return "—";
+  }
+  const value = event[field];
+  return value === null ? "—" : String(value);
+}
+
+function KeyReadout({ event }: { event: StepEvent }) {
+  if (event.vars.scoreKind === "g") {
+    return (
+      <div>
+        <dt>g</dt>
+        <dd data-live-g="">{keyValue(event, "g")}</dd>
+      </div>
+    );
+  }
+  if (event.vars.scoreKind === "h") {
+    return (
+      <div>
+        <dt>h</dt>
+        <dd data-live-h="">{keyValue(event, "h")}</dd>
+      </div>
+    );
+  }
+  return (
+    <>
+      <div>
+        <dt>g</dt>
+        <dd data-live-g="">{keyValue(event, "g")}</dd>
+      </div>
+      <div>
+        <dt>h</dt>
+        <dd data-live-h="">{keyValue(event, "h")}</dd>
+      </div>
+      <div>
+        <dt>f</dt>
+        <dd data-live-f="">{keyValue(event, "f")}</dd>
+      </div>
+    </>
+  );
+}
+
 export function Explanation({
   event,
   labelMode = "cities",
@@ -53,12 +102,16 @@ export function Explanation({
             <dt>Reached</dt>
             <dd data-live-reached="">{reached}</dd>
           </div>
-          <div>
-            <dt>Depth</dt>
-            <dd data-live-depth="">
-              {event.vars.depth === null ? "—" : event.vars.depth}
-            </dd>
-          </div>
+          {event.vars.scoreKind === null ? (
+            <div>
+              <dt>Depth</dt>
+              <dd data-live-depth="">
+                {event.vars.depth === null ? "—" : event.vars.depth}
+              </dd>
+            </div>
+          ) : (
+            <KeyReadout event={event} />
+          )}
           {event.vars.limit !== null ? (
             <div>
               <dt>Limit</dt>

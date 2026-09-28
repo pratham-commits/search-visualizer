@@ -35,7 +35,7 @@ export function nodeLabels(family: AlgorithmFamily): NodeLabels {
     case "greedy":
       return {
         showH: true,
-        showG: true,
+        showG: false,
         showF: false,
         showDepth: false,
         showEdgeCosts: true,

@@ -140,9 +140,13 @@ describe("edge and node labels", () => {
     expect(document.querySelector('[data-cell="Sibiu"]')?.getAttribute("data-h")).toBe(
       String(ROMANIA_SLD.Sibiu),
     );
-    expect(document.querySelector("[data-order-note]")?.textContent).toContain(
-      "order uses h",
+    const greedyCard = document.querySelector(
+      "[data-frontier-order='priority'] li[data-h]:not([data-h=''])",
     );
+    expect(greedyCard?.textContent).toContain("key h");
+    expect(greedyCard?.textContent).not.toMatch(/\bg \d/);
+    expect(document.querySelector('[data-cell="Sibiu"]')?.getAttribute("data-g")).toBe("");
+    expect(document.querySelector("[data-order-note]")).toBeNull();
   });
 
   it("runs A* on Romania and does not offer the wall grid", () => {

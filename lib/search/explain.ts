@@ -396,8 +396,12 @@ export function examNotation(event: StepEvent, mode: RomaniaLabelMode = "cities"
       ? `depth ${depth}`
       : `depth ${depth}, limit ${event.vars.limit}`;
   const who = event.focus === null ? "—" : place(event.focus, mode);
+  const heading =
+    kind === null
+      ? `${phaseLabel(event)}: ${who}  (${depthNote})`
+      : `${phaseLabel(event)}: ${who}`;
   const lines = [
-    `${phaseLabel(event)}: ${who}  (${depthNote})`,
+    heading,
     ...(formula ? [formula] : []),
     `Frontier: ${frontier}`,
     `Reached: ${reached}`,
