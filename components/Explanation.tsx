@@ -71,7 +71,7 @@ export function Explanation({
         .map(([key, cost]) => `${romaniaDisplay(key, labelMode)} → ${cost}`)
         .join(", ") || "empty"
     : event.vars.reached === null
-      ? "none — tree-like search keeps no reached table"
+      ? "none — tree-like search keeps no reached table; IS-CYCLE avoids a state already on the current path"
       : event.vars.reached.length === 0
         ? "empty"
         : event.vars.reached.map((key) => romaniaDisplay(key, labelMode)).join(", ");

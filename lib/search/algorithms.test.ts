@@ -159,7 +159,9 @@ describe("tree-like search on the wall grid", () => {
     );
     expect(cycle).toBeTruthy();
     expect(examNotation(cycle!)).toContain("IS-CYCLE = true");
-    expect(examNotation(cycle!)).toContain("Reached: — (tree-like search keeps none)");
+    expect(examNotation(cycle!)).toContain(
+      "Reached: — (no reached table; IS-CYCLE avoids a state already on the current path)",
+    );
   });
 });
 

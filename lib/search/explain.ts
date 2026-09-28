@@ -366,7 +366,9 @@ function formatReached(event: StepEvent, mode: RomaniaLabelMode): string {
     );
     return `{${parts.join(", ")}}`;
   }
-  if (event.vars.reached === null) return "— (tree-like search keeps none)";
+  if (event.vars.reached === null) {
+    return "— (no reached table; IS-CYCLE avoids a state already on the current path)";
+  }
   return `{${event.vars.reached.map((key) => place(key, mode)).join(", ")}}`;
 }
 

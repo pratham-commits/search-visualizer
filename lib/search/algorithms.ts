@@ -49,7 +49,7 @@ const INFO: Record<AlgorithmId, AlgorithmInfo> = {
     frontier: "FIFO queue",
     mode: "tree",
     isGoalWhen: "pop",
-    reached: "none — tree-like search",
+    reached: "none — tree-like search keeps no reached table; IS-CYCLE avoids a state already on the current path",
     f: "n/a (FIFO order)",
     pseudocode: `function BREADTH-FIRST-SEARCH(problem) returns a solution node or failure
   node ← NODE(problem.INITIAL)
@@ -93,7 +93,7 @@ const INFO: Record<AlgorithmId, AlgorithmInfo> = {
     frontier: "LIFO stack",
     mode: "tree",
     isGoalWhen: "pop",
-    reached: "none — tree-like search",
+    reached: "none — tree-like search keeps no reached table; IS-CYCLE avoids a state already on the current path",
     f: "n/a (LIFO order)",
     pseudocode: `function DEPTH-FIRST-SEARCH(problem) returns a solution node or failure
   node ← NODE(problem.INITIAL)
@@ -136,7 +136,7 @@ const INFO: Record<AlgorithmId, AlgorithmInfo> = {
     frontier: "LIFO stack",
     mode: "tree",
     isGoalWhen: "pop",
-    reached: "none — tree-like search",
+    reached: "none — tree-like search keeps no reached table; IS-CYCLE avoids a state already on the current path",
     f: "n/a (LIFO order)",
     pseudocode: `function DEPTH-LIMITED-SEARCH(problem, ℓ) returns a node or failure or cutoff
   frontier ← a LIFO queue, with NODE(problem.INITIAL) as an element
@@ -157,7 +157,7 @@ const INFO: Record<AlgorithmId, AlgorithmInfo> = {
     frontier: "LIFO stack",
     mode: "tree",
     isGoalWhen: "pop",
-    reached: "none — each iteration is a fresh tree-like search",
+    reached: "none — tree-like search keeps no reached table; IS-CYCLE avoids a state already on the current path",
     f: "n/a (LIFO order)",
     pseudocode: `function ITERATIVE-DEEPENING-SEARCH(problem) returns a solution node or failure
   for depth = 0 to ∞ do

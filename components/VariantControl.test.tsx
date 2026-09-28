@@ -33,7 +33,7 @@ describe("variant control", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Tree-like" }));
     expect(document.querySelector("[data-policy-reached]")?.textContent).toBe(
-      "none — tree-like search",
+      "none — tree-like search keeps no reached table; IS-CYCLE avoids a state already on the current path",
     );
     jumpToEnd();
     const treeRun = treeEdges();
