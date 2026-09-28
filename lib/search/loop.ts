@@ -415,7 +415,39 @@ export function search<S, A>(
       }
 
       if (policy.mode === "graph" && reached.has(childKey)) {
-        // Best-first does not reopen an already-expanded state; correct for the consistent heuristics we use.
+        // 4e best-first pushes the child again when PATH-COST is lower than reached[state].
+        const previousCost = bestCost.get(childKey);
+        if (
+          policy.scoreKind &&
+          previousCost !== undefined &&
+          child.pathCost < previousCost
+        ) {
+          noteCost(childKey, child.pathCost);
+          frontier.push(child);
+          const reopened = snap();
+          push(
+            {
+              type: "frontier-add",
+              nodeId: child.id,
+              parentId: node.id,
+              parentKey: nodeKey,
+              stateKey: childKey,
+              g: child.pathCost,
+              h: hOf(child),
+              parentG: node.pathCost,
+              f: score(child),
+              frontier: reopened,
+            },
+            {
+              phase: "generate-child",
+              focus: nodeKey,
+              examining: [childKey],
+              depth: node.depth,
+              frontier: reopened,
+            },
+          );
+          continue;
+        }
         push(
           {
             type: "frontier-skip",
