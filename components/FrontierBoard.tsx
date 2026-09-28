@@ -16,6 +16,7 @@ export function FrontierBoard({
 }) {
   const lifo = frame.structure === "lifo";
   const priority = frame.structure === "priority";
+  const showDepth = labels?.showDepth === true && labels.showG === false;
   const title = lifo
     ? "Frontier — LIFO stack"
     : priority
@@ -45,9 +46,10 @@ export function FrontierBoard({
                 key={item.id}
                 data-frontier-id={item.id}
                 data-state={item.stateKey}
-                data-g={labels?.showG === false ? "" : item.g}
+                data-g={showDepth || labels?.showG === false ? "" : item.g}
                 data-h={labels?.showH ? (item.h ?? "") : ""}
                 data-f={labels?.showF ? item.f : ""}
+                data-depth={showDepth ? String(item.depth) : ""}
                 data-priority={item.f}
                 data-next={index === 0 ? "true" : "false"}
                 data-replaced={
@@ -64,7 +66,9 @@ export function FrontierBoard({
                         : `key f ${item.f}${item.h !== null ? ` · g ${item.g} h ${item.h}` : ""}`}
                   </span>
                 ) : (
-                  <span className="nums">g {item.g}</span>
+                  <span className="nums">
+                    {showDepth ? `depth ${item.depth}` : `g ${item.g}`}
+                  </span>
                 )}
               </li>
             ))}

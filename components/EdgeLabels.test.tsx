@@ -40,6 +40,21 @@ describe("edge and node labels", () => {
     expect(arad?.getAttribute("data-depth")).toBe("0");
     expect(arad?.textContent).toContain("d0");
     expect(arad?.textContent).not.toContain("h");
+
+    fireEvent.click(screen.getByRole("button", { name: "Depth-first" }));
+    fireEvent.click(screen.getByRole("button", { name: "Tree-like" }));
+    const slider = screen.getByRole("slider", { name: "Trace" });
+    fireEvent.change(slider, { target: { value: slider.getAttribute("max") } });
+    const bucharest = [...document.querySelectorAll("li[data-state='Bucharest']")];
+    expect(bucharest.map((card) => card.getAttribute("data-depth")).sort(
+      (a, b) => Number(a) - Number(b),
+    )).toEqual(["7", "10"]);
+    for (const card of bucharest) {
+      expect(card.textContent).toContain(`depth ${card.getAttribute("data-depth")}`);
+      expect(card.textContent).not.toContain("1119");
+      expect(card.textContent).not.toContain("733");
+      expect(card.getAttribute("data-g")).toBe("");
+    }
   });
 
   it("draws Romania action costs, static h, and A* f = g + h in sync with the exam line", () => {
@@ -103,6 +118,13 @@ describe("edge and node labels", () => {
     fireEvent.click(screen.getByRole("button", { name: "Romania" }));
     fireEvent.click(screen.getByRole("button", { name: "Uniform-cost" }));
     const slider = screen.getByRole("slider", { name: "Trace" });
+    fireEvent.change(slider, { target: { value: "8" } });
+    const frontierCard = document.querySelector(
+      "[data-frontier-order='priority'] li[data-g]:not([data-g=''])",
+    );
+    expect(frontierCard).toBeTruthy();
+    expect(frontierCard?.textContent).toContain(`g ${frontierCard?.getAttribute("data-g")}`);
+    expect(frontierCard?.textContent).not.toContain("depth");
     fireEvent.change(slider, { target: { value: slider.getAttribute("max") } });
     expect(document.querySelector('[data-cell][data-h]:not([data-h=""])')).toBeNull();
     expect(document.querySelector('[data-cell][data-f]:not([data-f=""])')).toBeNull();

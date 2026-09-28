@@ -50,7 +50,7 @@ const INFO: Record<AlgorithmId, AlgorithmInfo> = {
     mode: "tree",
     isGoalWhen: "pop",
     reached: "none — tree-like search",
-    f: "g",
+    f: "n/a (FIFO order)",
     pseudocode: `function BREADTH-FIRST-SEARCH(problem) returns a solution node or failure
   node ← NODE(problem.INITIAL)
   frontier ← a FIFO queue, with node as an element
@@ -70,7 +70,7 @@ const INFO: Record<AlgorithmId, AlgorithmInfo> = {
     mode: "graph",
     isGoalWhen: "generate",
     reached: "reached set",
-    f: "g",
+    f: "n/a (FIFO order)",
     pseudocode: `function BREADTH-FIRST-SEARCH(problem) returns a solution node or failure
   node ← NODE(problem.INITIAL)
   if problem.IS-GOAL(node.STATE) then return node
@@ -94,7 +94,7 @@ const INFO: Record<AlgorithmId, AlgorithmInfo> = {
     mode: "tree",
     isGoalWhen: "pop",
     reached: "none — tree-like search",
-    f: "g",
+    f: "n/a (LIFO order)",
     pseudocode: `function DEPTH-FIRST-SEARCH(problem) returns a solution node or failure
   node ← NODE(problem.INITIAL)
   frontier ← a LIFO queue, with node as an element
@@ -114,7 +114,7 @@ const INFO: Record<AlgorithmId, AlgorithmInfo> = {
     mode: "graph",
     isGoalWhen: "pop",
     reached: "reached set, first path kept",
-    f: "g",
+    f: "n/a (LIFO order)",
     pseudocode: `function DEPTH-FIRST-SEARCH(problem) returns a solution node or failure
   node ← NODE(problem.INITIAL)
   frontier ← a LIFO queue, with node as an element
@@ -137,7 +137,7 @@ const INFO: Record<AlgorithmId, AlgorithmInfo> = {
     mode: "tree",
     isGoalWhen: "pop",
     reached: "none — tree-like search",
-    f: "g",
+    f: "n/a (LIFO order)",
     pseudocode: `function DEPTH-LIMITED-SEARCH(problem, ℓ) returns a node or failure or cutoff
   frontier ← a LIFO queue, with NODE(problem.INITIAL) as an element
   result ← failure
@@ -158,7 +158,7 @@ const INFO: Record<AlgorithmId, AlgorithmInfo> = {
     mode: "tree",
     isGoalWhen: "pop",
     reached: "none — each iteration is a fresh tree-like search",
-    f: "g",
+    f: "n/a (LIFO order)",
     pseudocode: `function ITERATIVE-DEEPENING-SEARCH(problem) returns a solution node or failure
   for depth = 0 to ∞ do
     result ← DEPTH-LIMITED-SEARCH(problem, depth)
@@ -431,7 +431,7 @@ const DLS_GRAPH: AlgorithmInfo = {
   mode: "graph",
   isGoalWhen: "pop",
   reached: "reached set — each state once",
-  f: "g",
+  f: "n/a (LIFO order)",
   pseudocode: `function DEPTH-LIMITED-SEARCH(problem, ℓ) returns a node or failure or cutoff
   frontier ← a LIFO queue, with NODE(problem.INITIAL) as an element
   reached ← {problem.INITIAL}
@@ -456,7 +456,7 @@ const IDS_GRAPH: AlgorithmInfo = {
   mode: "graph",
   isGoalWhen: "pop",
   reached: "reached set — each state once per iteration",
-  f: "g",
+  f: "n/a (LIFO order)",
   pseudocode: `function ITERATIVE-DEEPENING-SEARCH(problem) returns a solution node or failure
   for depth = 0 to ∞ do
     result ← DEPTH-LIMITED-SEARCH(problem, depth)
