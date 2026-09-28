@@ -63,10 +63,10 @@ export function gridProblem(spec: GridSpec): Problem<GridState, GridAction> {
     result(state, action) {
       return step(state, action);
     },
-    stepCost(_state, _action, next) {
+    actionCost(_state, _action, next) {
       return enterCost(spec, next);
     },
-    goalTest(state) {
+    isGoal(state) {
       return state.x === spec.goal.x && state.y === spec.goal.y;
     },
     stateKey: gridKey,

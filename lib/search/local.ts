@@ -20,7 +20,7 @@ export interface LocalProblem<S> {
   kind: "queens" | "landscape" | "toy";
   neighbors(state: S): S[];
   value(state: S): number;
-  goalTest(state: S): boolean;
+  isGoal(state: S): boolean;
   key(state: S): string;
   coordinate(state: S): number | null;
   queens(state: S): number[] | null;
@@ -48,7 +48,8 @@ export function expSchedule(k = 20, lam = 0.005, limit = 100): Schedule {
 
 const QUIET_VARS: StepFacts["vars"] = {
   frontier: [],
-  explored: null,
+  reached: null,
+  reachedCost: null,
   depth: null,
   repeated: false,
   limit: null,
@@ -137,9 +138,9 @@ export function hillClimbing<S>(
     const neighbors = problem.neighbors(current);
     if (neighbors.length === 0) {
       trace.push(
-        climb(problem, current, null, 0, false, problem.goalTest(current), false, 0, null),
+        climb(problem, current, null, 0, false, problem.isGoal(current), false, 0, null),
       );
-      return done(problem.goalTest(current) ? "success" : "failure", trace, problem.value(current));
+      return done(problem.isGoal(current) ? "success" : "failure", trace, problem.value(current));
     }
     const best = argmaxRandomTie(neighbors, (state) => problem.value(state), rng);
     const currentValue = problem.value(current);
@@ -149,7 +150,7 @@ export function hillClimbing<S>(
     const takeSideways = sideways && equal && streak < sidewaysLimit;
     const moved = improved || takeSideways;
     const nextStreak = improved ? 0 : takeSideways ? streak + 1 : streak;
-    const goal = moved ? problem.goalTest(best) : problem.goalTest(current);
+    const goal = moved ? problem.isGoal(best) : problem.isGoal(current);
     trace.push(
       climb(
         problem,
@@ -232,7 +233,7 @@ export function simulatedAnnealing<S>(
     if (temperature === 0) {
       trace.push(annealStop(problem, current, t, schedule.initial));
       return done(
-        problem.goalTest(current) ? "success" : "failure",
+        problem.isGoal(current) ? "success" : "failure",
         trace,
         problem.value(current),
       );
@@ -241,7 +242,7 @@ export function simulatedAnnealing<S>(
     if (neighbors.length === 0) {
       trace.push(annealStop(problem, current, t, schedule.initial));
       return done(
-        problem.goalTest(current) ? "success" : "failure",
+        problem.isGoal(current) ? "success" : "failure",
         trace,
         problem.value(current),
       );
@@ -309,7 +310,7 @@ function annealStop<S>(
     accepted: false,
     stopped: true,
     step,
-    goal: problem.goalTest(current),
+    goal: problem.isGoal(current),
   });
 }
 
@@ -345,7 +346,7 @@ export function localBeamSearch<S>(
   let current = options.initial ?? Array.from({ length: k }, () => problem.random(rng));
   const trace: StepEvent[] = [];
 
-  const startedAtGoal = current.some((state) => problem.goalTest(state));
+  const startedAtGoal = current.some((state) => problem.isGoal(state));
   trace.push(
     beamShell(
       k,
@@ -374,7 +375,7 @@ export function localBeamSearch<S>(
       .map((item, index) => ({ item, index }))
       .sort((a, b) => b.item.value - a.item.value || a.index - b.index);
     const picked = ranked.slice(0, Math.min(k, ranked.length));
-    const goalInPool = poolStates.some((item) => problem.goalTest(item.state));
+    const goalInPool = poolStates.some((item) => problem.isGoal(item.state));
     trace.push({
       ...beamShell(k, round, current.map((state) => member(problem, state, null)), pool, picked.map((row) => row.item), goalInPool),
     });
@@ -387,7 +388,7 @@ export function localBeamSearch<S>(
   const last = trace[trace.length - 1];
   if (last?.type === "beam" && !last.goal) trace[trace.length - 1] = { ...last, stopped: true };
   return done(
-    current.some((state) => problem.goalTest(state)) ? "success" : "failure",
+    current.some((state) => problem.isGoal(state)) ? "success" : "failure",
     trace,
     best,
   );
@@ -474,12 +475,12 @@ export function geneticAlgorithm(
       const individual = { genes: birth.child.slice(), fitness: birth.childFitness };
       born.push(individual);
       const replaced = child === population.length - 1;
-      const goal = replaced && born.some((person) => problem.goalTest(person.genes));
+      const goal = replaced && born.some((person) => problem.isGoal(person.genes));
       const stopped = replaced && generation === generations && !goal;
       trace.push(gaEvent(generation, population, birth, born.map((person) => ({ ...person, genes: person.genes.slice() })), replaced, goal, stopped, pop));
     }
     population = born;
-    if (population.some((person) => problem.goalTest(person.genes))) {
+    if (population.some((person) => problem.isGoal(person.genes))) {
       const best = Math.max(...population.map((person) => person.fitness));
       return done("success", trace, best);
     }

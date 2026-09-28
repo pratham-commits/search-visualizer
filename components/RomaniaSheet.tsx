@@ -66,7 +66,7 @@ export function RomaniaSheet({
       {edges.map((edge) => {
         const a = project(ROMANIA_LOCATIONS[edge.from]);
         const b = project(ROMANIA_LOCATIONS[edge.to]);
-        const cost = problem.stepCost(edge.from, edge.to, edge.to);
+        const cost = problem.actionCost(edge.from, edge.to, edge.to);
         const dx = b.x - a.x;
         const dy = b.y - a.y;
         const length = Math.hypot(dx, dy) || 1;
@@ -179,7 +179,7 @@ export function RomaniaSheet({
             key={city}
             className="city"
             data-cell={city}
-            data-explored={marks.explored ? "true" : "false"}
+            data-reached={marks.reached ? "true" : "false"}
             data-frontier={marks.frontier ? "true" : "false"}
             data-path={marks.solution ? "true" : "false"}
             data-current={marks.current ? "true" : "false"}
@@ -189,7 +189,7 @@ export function RomaniaSheet({
             data-wall="false"
             data-replaced={frame.replacedKey === city ? "true" : "false"}
             data-start={city === problem.initial ? "true" : "false"}
-            data-goal={problem.goalTest(city) ? "true" : "false"}
+            data-goal={problem.isGoal(city) ? "true" : "false"}
             data-g={showG && score ? String(score.g) : ""}
             data-h={h !== null ? String(h) : ""}
             data-f={showF && score ? String(score.f) : ""}

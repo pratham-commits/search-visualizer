@@ -33,9 +33,9 @@ describe("priority queue on the sheet", () => {
     fireEvent.click(screen.getByRole("button", { name: "A*" }));
     fireEvent.click(screen.getByRole("button", { name: "Cities" }));
     expect(document.querySelector("[data-variant-label]")?.textContent).toBe(
-      "graph search",
+      "Graph",
     );
-    expect(screen.queryByRole("button", { name: "Tree" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Tree-like" })).toBeNull();
 
     jump(sibiu);
     const sibiuEvent = astar.trace[sibiu];

@@ -34,7 +34,7 @@ const toy: LocalProblem<string> = {
   value(state) {
     return { A: 0, A1: 10, A2: 9, B: 0, B1: 3 }[state] ?? 0;
   },
-  goalTest: () => false,
+  isGoal: () => false,
   key: (state) => state,
   coordinate: () => null,
   queens: () => null,

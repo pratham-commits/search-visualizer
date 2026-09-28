@@ -12,9 +12,9 @@ export type AlgorithmId =
 
 /** Syllabus algorithms. Uniform-cost stays; the generic best-first loop is the engine under it, greedy, and A*. */
 export const ALGORITHM_CATALOG = [
-  { n: 1, id: "bfs-tree", name: "Breadth-first tree" },
+  { n: 1, id: "bfs-tree", name: "Breadth-first tree-like" },
   { n: 2, id: "bfs-graph", name: "Breadth-first graph" },
-  { n: 3, id: "dfs-tree", name: "Depth-first tree" },
+  { n: 3, id: "dfs-tree", name: "Depth-first tree-like" },
   { n: 4, id: "dfs-graph", name: "Depth-first graph" },
   { n: 5, id: "depth-limited", name: "Depth-limited" },
   { n: 6, id: "iterative-deepening", name: "Iterative deepening" },
@@ -34,8 +34,8 @@ export interface AlgorithmInfo {
   pseudocode: string;
   frontier: string;
   mode: "tree" | "graph";
-  goalTest: "pop" | "generate";
-  explored: string;
+  isGoalWhen: "pop" | "generate";
+  reached: string;
   f: string;
   /** Replaces the on-pop / on-generate phrase when the algorithm has no frontier. */
   goalLabel?: string;
@@ -44,107 +44,124 @@ export interface AlgorithmInfo {
 const INFO: Record<AlgorithmId, AlgorithmInfo> = {
   "bfs-tree": {
     id: "bfs-tree",
-    name: "Breadth-first tree",
-    line: "FIFO queue. Goal-test a node when it is popped. No explored set.",
+    name: "Breadth-first tree-like",
+    line: "FIFO queue. IS-GOAL when a node is popped. No reached table; IS-CYCLE checks ancestors.",
     frontier: "FIFO queue",
     mode: "tree",
-    goalTest: "pop",
-    explored: "none — tree search",
+    isGoalWhen: "pop",
+    reached: "none — tree-like search",
     f: "g",
-    pseudocode: `frontier ← FIFO queue with NODE(initial)
-while frontier is not empty do
-  node ← POP(frontier)
-  if GOAL(node) then return node
-  for each child in EXPAND(node) do
-    INSERT(child, frontier)`,
+    pseudocode: `function BREADTH-FIRST-SEARCH(problem) returns a solution node or failure
+  node ← NODE(problem.INITIAL)
+  frontier ← a FIFO queue, with node as an element
+  while not IS-EMPTY(frontier) do
+    node ← POP(frontier)
+    if problem.IS-GOAL(node.STATE) then return node
+    if not IS-CYCLE(node) then
+      for each child in EXPAND(problem, node) do
+        add child to frontier
+  return failure`,
   },
   "bfs-graph": {
     id: "bfs-graph",
     name: "Breadth-first graph",
-    line: "FIFO queue. Goal-test a child when it is generated. Mark a node explored when it is popped.",
+    line: "FIFO queue and a reached set. IS-GOAL runs early, when a child is generated.",
     frontier: "FIFO queue",
     mode: "graph",
-    goalTest: "generate",
-    explored: "on pop",
+    isGoalWhen: "generate",
+    reached: "reached set",
     f: "g",
-    pseudocode: `if GOAL(initial) then return it
-frontier ← FIFO queue with NODE(initial)
-while frontier is not empty do
-  node ← POP(frontier)
-  add node.STATE to explored
-  for each child in EXPAND(node) do
-    if child.STATE is explored or in frontier then skip
-    if GOAL(child) then return child
-    INSERT(child, frontier)`,
+    pseudocode: `function BREADTH-FIRST-SEARCH(problem) returns a solution node or failure
+  node ← NODE(problem.INITIAL)
+  if problem.IS-GOAL(node.STATE) then return node
+  frontier ← a FIFO queue, with node as an element
+  reached ← {problem.INITIAL}
+  while not IS-EMPTY(frontier) do
+    node ← POP(frontier)
+    for each child in EXPAND(problem, node) do
+      s ← child.STATE
+      if problem.IS-GOAL(s) then return child
+      if s is not in reached then
+        add s to reached
+        add child to frontier
+  return failure`,
   },
   "dfs-tree": {
     id: "dfs-tree",
-    name: "Depth-first tree",
-    line: "LIFO stack. Goal-test a node when it is popped. No explored set, so a repeated state is pushed again.",
+    name: "Depth-first tree-like",
+    line: "LIFO stack. IS-GOAL on pop. No reached table; IS-CYCLE(node) checks ancestors.",
     frontier: "LIFO stack",
     mode: "tree",
-    goalTest: "pop",
-    explored: "none — tree search",
+    isGoalWhen: "pop",
+    reached: "none — tree-like search",
     f: "g",
-    pseudocode: `frontier ← LIFO stack with NODE(initial)
-while frontier is not empty do
-  node ← POP(frontier)
-  if GOAL(node) then return node
-  for each child in EXPAND(node) do
-    PUSH(child, frontier)`,
+    pseudocode: `function DEPTH-FIRST-SEARCH(problem) returns a solution node or failure
+  node ← NODE(problem.INITIAL)
+  frontier ← a LIFO queue, with node as an element
+  while not IS-EMPTY(frontier) do
+    node ← POP(frontier)
+    if problem.IS-GOAL(node.STATE) then return node
+    if not IS-CYCLE(node) then
+      for each child in EXPAND(problem, node) do
+        add child to frontier
+  return failure`,
   },
   "dfs-graph": {
     id: "dfs-graph",
     name: "Depth-first graph",
-    line: "LIFO stack. Goal-test on pop. The explored set keeps the first path that reached a state.",
+    line: "LIFO stack. IS-GOAL on pop. The reached set keeps the first path to a state.",
     frontier: "LIFO stack",
     mode: "graph",
-    goalTest: "pop",
-    explored: "on pop, after the goal test fails",
+    isGoalWhen: "pop",
+    reached: "reached set, first path kept",
     f: "g",
-    pseudocode: `frontier ← LIFO stack with NODE(initial)
-while frontier is not empty do
-  node ← POP(frontier)
-  if GOAL(node) then return node
-  add node.STATE to explored
-  for each child in EXPAND(node) do
-    if child.STATE is explored or in frontier then skip
-    PUSH(child, frontier)`,
+    pseudocode: `function DEPTH-FIRST-SEARCH(problem) returns a solution node or failure
+  node ← NODE(problem.INITIAL)
+  frontier ← a LIFO queue, with node as an element
+  reached ← {problem.INITIAL}
+  while not IS-EMPTY(frontier) do
+    node ← POP(frontier)
+    if problem.IS-GOAL(node.STATE) then return node
+    for each child in EXPAND(problem, node) do
+      s ← child.STATE
+      if s is not in reached then
+        add s to reached
+        add child to frontier
+  return failure`,
   },
   "depth-limited": {
     id: "depth-limited",
     name: "Depth-limited",
-    line: "Depth-first tree search with a depth limit L. A node at depth L is goal-tested and not expanded.",
+    line: "LIFO frontier with limit ℓ. Return the cutoff sentinel at the limit. IS-CYCLE avoids cycles.",
     frontier: "LIFO stack",
     mode: "tree",
-    goalTest: "pop",
-    explored: "none — tree search",
+    isGoalWhen: "pop",
+    reached: "none — tree-like search",
     f: "g",
-    pseudocode: `function DLS(problem, L)
-  return RECURSIVE-DLS(NODE(initial), problem, L)
-
-function RECURSIVE-DLS(node, problem, limit)
-  if GOAL(node) then return solution
-  if limit = 0 then return cutoff
-  cutoff_occurred ← false
-  for each child in EXPAND(node) do
-    result ← RECURSIVE-DLS(child, problem, limit − 1)
-    if result = cutoff then cutoff_occurred ← true
-    else if result ≠ failure then return result
-  if cutoff_occurred then return cutoff else return failure`,
+    pseudocode: `function DEPTH-LIMITED-SEARCH(problem, ℓ) returns a node or failure or cutoff
+  frontier ← a LIFO queue, with NODE(problem.INITIAL) as an element
+  result ← failure
+  while not IS-EMPTY(frontier) do
+    node ← POP(frontier)
+    if problem.IS-GOAL(node.STATE) then return node
+    if DEPTH(node) > ℓ then result ← cutoff
+    else if not IS-CYCLE(node) then
+      for each child in EXPAND(problem, node) do
+        add child to frontier
+  return result`,
   },
   "iterative-deepening": {
     id: "iterative-deepening",
     name: "Iterative deepening",
-    line: "Run depth-limited search for L = 0, 1, 2, … and restart from the start after each cutoff.",
+    line: "Depth-limited search for ℓ = 0, 1, 2, …, starting over after each cutoff.",
     frontier: "LIFO stack",
     mode: "tree",
-    goalTest: "pop",
-    explored: "none — each iteration is a fresh tree",
+    isGoalWhen: "pop",
+    reached: "none — each iteration is a fresh tree-like search",
     f: "g",
-    pseudocode: `function IDS(problem)
-  for L = 0, 1, 2, … do
-    result ← DLS(problem, L)
+    pseudocode: `function ITERATIVE-DEEPENING-SEARCH(problem) returns a solution node or failure
+  for depth = 0 to ∞ do
+    result ← DEPTH-LIMITED-SEARCH(problem, depth)
     if result ≠ cutoff then return result`,
   },
 };
@@ -163,7 +180,7 @@ export function breadthFirstTreeSearch<S, A>(
 ): SearchResult<S, A> {
   return search(problem, new FifoFrontier(problem.stateKey), {
     mode: "tree",
-    goalTest: "pop",
+    isGoalWhen: "pop",
     replaceFrontier: "never",
     f: (node) => node.pathCost,
     expansionLimit: options.expansionLimit,
@@ -175,7 +192,7 @@ export function breadthFirstGraphSearch<S, A>(
 ): SearchResult<S, A> {
   return search(problem, new FifoFrontier(problem.stateKey), {
     mode: "graph",
-    goalTest: "generate",
+    isGoalWhen: "generate",
     replaceFrontier: "never",
     f: (node) => node.pathCost,
   });
@@ -187,7 +204,7 @@ export function depthFirstTreeSearch<S, A>(
 ): SearchResult<S, A> {
   return search(problem, new LifoFrontier(problem.stateKey), {
     mode: "tree",
-    goalTest: "pop",
+    isGoalWhen: "pop",
     replaceFrontier: "never",
     f: (node) => node.pathCost,
     expansionLimit: options.expansionLimit,
@@ -199,7 +216,7 @@ export function depthFirstGraphSearch<S, A>(
 ): SearchResult<S, A> {
   return search(problem, new LifoFrontier(problem.stateKey), {
     mode: "graph",
-    goalTest: "pop",
+    isGoalWhen: "pop",
     replaceFrontier: "never",
     f: (node) => node.pathCost,
   });
@@ -210,7 +227,7 @@ export interface BestFirstOptions<S, A> {
   scoreKind: "g" | "h" | "g+h";
 }
 
-/** aima-python `best_first_graph_search`: min-f, explored on pop, goal test on pop, replace a worse frontier node. */
+/** Best-first graph search: min-f, IS-GOAL on pop, replace a frontier node when f is lower. */
 export function bestFirstGraphSearch<S, A>(
   problem: Problem<S, A>,
   f: (node: Node<S, A>) => number,
@@ -218,7 +235,7 @@ export function bestFirstGraphSearch<S, A>(
 ): SearchResult<S, A> {
   return search(problem, new PriorityFrontier(problem.stateKey, f), {
     mode: "graph",
-    goalTest: "pop",
+    isGoalWhen: "pop",
     replaceFrontier: "if-lower-f",
     f,
     heuristic: options.heuristic,
@@ -266,7 +283,7 @@ export function depthLimitedSearch<S, A>(
 ): SearchResult<S, A> {
   return search(problem, new LifoFrontier(problem.stateKey), {
     mode,
-    goalTest: "pop",
+    isGoalWhen: "pop",
     replaceFrontier: "never",
     f: (node) => node.pathCost,
     depthLimit: limit,
@@ -299,7 +316,8 @@ export function iterativeDeepeningSearch<S, A>(
       structure: "lifo",
       vars: {
         frontier: [],
-        explored: mode === "graph" ? [] : null,
+        reached: mode === "graph" ? [] : null,
+        reachedCost: null,
         depth: null,
         repeated: false,
         limit,
@@ -360,7 +378,7 @@ export function runAlgorithm<S, A>(
 }
 
 export const DLS_GRAPH_CAPTION =
-  "graph variant checks for repeated states; classic IDS/DLS is tree-search for low memory.";
+  "graph variant keeps a reached set; classic IDS/DLS is tree-like search, for low memory.";
 
 export type AlgorithmFamily =
   | "bfs"
@@ -408,75 +426,96 @@ export function familySpec(id: AlgorithmFamily): FamilySpec {
 const DLS_GRAPH: AlgorithmInfo = {
   id: "depth-limited",
   name: "Depth-limited",
-  line: "Depth-first search with limit L and an explored set. A state already explored or still in the frontier is not pushed again.",
+  line: "Depth-limited search with a reached set. A state already reached, or still in the frontier, is not pushed again.",
   frontier: "LIFO stack",
   mode: "graph",
-  goalTest: "pop",
-  explored: "on pop — each state once",
+  isGoalWhen: "pop",
+  reached: "reached set — each state once",
   f: "g",
-  pseudocode: `function DLS(problem, L)
-  return RECURSIVE-DLS(NODE(initial), problem, L)
-
-function RECURSIVE-DLS(node, problem, limit)
-  if GOAL(node) then return solution
-  if limit = 0 then return cutoff
-  add node.STATE to explored
-  for each child in EXPAND(node) do
-    if child.STATE is explored or in frontier then skip
-    result ← RECURSIVE-DLS(child, problem, limit − 1)`,
+  pseudocode: `function DEPTH-LIMITED-SEARCH(problem, ℓ) returns a node or failure or cutoff
+  frontier ← a LIFO queue, with NODE(problem.INITIAL) as an element
+  reached ← {problem.INITIAL}
+  result ← failure
+  while not IS-EMPTY(frontier) do
+    node ← POP(frontier)
+    if problem.IS-GOAL(node.STATE) then return node
+    if DEPTH(node) > ℓ then result ← cutoff
+    else for each child in EXPAND(problem, node) do
+      s ← child.STATE
+      if s is not in reached then
+        add s to reached
+        add child to frontier
+  return result`,
 };
 
 const IDS_GRAPH: AlgorithmInfo = {
   id: "iterative-deepening",
   name: "Iterative deepening",
-  line: "Depth-limited graph search for L = 0, 1, 2, …. Each iteration starts over and keeps an explored set.",
+  line: "Depth-limited graph search for ℓ = 0, 1, 2, …. Each iteration starts over and keeps a reached set.",
   frontier: "LIFO stack",
   mode: "graph",
-  goalTest: "pop",
-  explored: "on pop — each state once per iteration",
+  isGoalWhen: "pop",
+  reached: "reached set — each state once per iteration",
   f: "g",
-  pseudocode: `function IDS(problem)
-  for L = 0, 1, 2, … do
-    result ← GRAPH-DLS(problem, L)
+  pseudocode: `function ITERATIVE-DEEPENING-SEARCH(problem) returns a solution node or failure
+  for depth = 0 to ∞ do
+    result ← DEPTH-LIMITED-SEARCH(problem, depth)
     if result ≠ cutoff then return result`,
 };
+
+const BEST_FIRST = `function BEST-FIRST-SEARCH(problem, f) returns a solution node or failure
+  node ← NODE(STATE=problem.INITIAL)
+  frontier ← a priority queue ordered by f, with node as an element
+  reached ← a lookup table, with one entry with key problem.INITIAL and value node
+  while not IS-EMPTY(frontier) do
+    node ← POP(frontier)
+    if problem.IS-GOAL(node.STATE) then return node
+    for each child in EXPAND(problem, node) do
+      s ← child.STATE
+      if s is not in reached or child.PATH-COST < reached[s].PATH-COST then
+        reached[s] ← child
+        add child to frontier
+  return failure`;
 
 const PRIORITY: Record<"ucs" | "greedy" | "astar", AlgorithmInfo> = {
   ucs: {
     id: "ucs",
     name: "Uniform-cost",
     mode: "graph",
-    frontier: "priority queue",
-    goalTest: "pop",
-    explored: "on pop",
-    f: "g",
-    line: "Graph search. Pop the frontier node with the smallest g. A cheaper path already in the frontier replaces the old one.",
-    pseudocode: `function UNIFORM-COST(problem)
-  return BEST-FIRST-GRAPH-SEARCH(problem, g)`,
+    frontier: "priority queue ordered by PATH-COST",
+    isGoalWhen: "pop",
+    reached: "state → best PATH-COST",
+    f: "PATH-COST (g)",
+    line: "Best-first search with f = PATH-COST. Also known as Dijkstra's algorithm. A cheaper path replaces the node already in reached.",
+    pseudocode: `f ← PATH-COST    // g(n). Uniform-cost search is Dijkstra's algorithm.
+
+${BEST_FIRST}`,
   },
   greedy: {
     id: "greedy",
     name: "Greedy best-first",
     mode: "graph",
-    frontier: "priority queue",
-    goalTest: "pop",
-    explored: "on pop",
+    frontier: "priority queue ordered by h",
+    isGoalWhen: "pop",
+    reached: "state → best PATH-COST",
     f: "h",
-    line: "Graph search. Pop the frontier node with the smallest h. Not optimal: h ignores the cost already paid.",
-    pseudocode: `function GREEDY-BEST-FIRST(problem, h)
-  return BEST-FIRST-GRAPH-SEARCH(problem, h)`,
+    line: "Best-first search with f = h. Not optimal: h ignores the cost already paid.",
+    pseudocode: `f ← h
+
+${BEST_FIRST}`,
   },
   astar: {
     id: "astar",
     name: "A*",
     mode: "graph",
-    frontier: "priority queue",
-    goalTest: "pop",
-    explored: "on pop",
+    frontier: "priority queue ordered by g + h",
+    isGoalWhen: "pop",
+    reached: "state → best PATH-COST",
     f: "g + h",
-    line: "Graph search. Pop the frontier node with the smallest f = g + h. A lower f already in the frontier replaces the old node.",
-    pseudocode: `function A-STAR(problem, h)
-  return BEST-FIRST-GRAPH-SEARCH(problem, g + h)`,
+    line: "Best-first search with f = g + h. A lower f already in the frontier replaces the old node, and reached keeps the cheaper PATH-COST.",
+    pseudocode: `f ← g + h
+
+${BEST_FIRST}`,
   },
 };
 
@@ -486,9 +525,9 @@ const LOCAL: Record<"hill-climbing" | "annealing" | "beam" | "genetic", Algorith
     name: "Hill climbing",
     mode: "graph",
     frontier: "none",
-    goalTest: "pop",
+    isGoalWhen: "pop",
     goalLabel: "stop at a local maximum",
-    explored: "none",
+    reached: "none",
     f: "—",
     line: "Steepest ascent. Move to the best neighbor only when it is strictly better. Stop on a local maximum or a plateau.",
     pseudocode: `function HILL-CLIMBING(problem)
@@ -503,9 +542,9 @@ const LOCAL: Record<"hill-climbing" | "annealing" | "beam" | "genetic", Algorith
     name: "Simulated annealing",
     mode: "graph",
     frontier: "none",
-    goalTest: "pop",
+    isGoalWhen: "pop",
     goalLabel: "stop when T = 0",
-    explored: "none",
+    reached: "none",
     f: "—",
     line: "Pick a random neighbor. Accept it when ΔE > 0, otherwise with probability e^(ΔE/T). T cools on an exponential schedule.",
     pseudocode: `function SIMULATED-ANNEALING(problem, schedule)
@@ -523,9 +562,9 @@ const LOCAL: Record<"hill-climbing" | "annealing" | "beam" | "genetic", Algorith
     name: "Local beam search",
     mode: "graph",
     frontier: "none",
-    goalTest: "pop",
+    isGoalWhen: "pop",
     goalLabel: "any state in the pool is a goal",
-    explored: "none",
+    reached: "none",
     f: "—",
     line: "Keep k states. Each round, pool every successor of every state, then keep the best k of that one pool.",
     pseudocode: `function LOCAL-BEAM-SEARCH(problem, k)
@@ -540,9 +579,9 @@ const LOCAL: Record<"hill-climbing" | "annealing" | "beam" | "genetic", Algorith
     name: "Genetic algorithm",
     mode: "graph",
     frontier: "none",
-    goalTest: "pop",
+    isGoalWhen: "pop",
     goalLabel: "an individual reaches fitness 28",
-    explored: "none",
+    reached: "none",
     f: "—",
     line: "A population of 8-queens states. Select parents by fitness, cross over at a random gene, mutate with probability p, and replace the population.",
     pseudocode: `function GENETIC-ALGORITHM(population, fitness)

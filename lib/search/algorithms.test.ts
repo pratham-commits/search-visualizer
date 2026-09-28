@@ -32,7 +32,7 @@ function repeatsAState(keys: string[]): boolean {
 describe("breadth-first graph on the wall grid", () => {
   const result = breadthFirstGraphSearch(grid);
 
-  it("expands in the hand-checked FIFO order and goal-tests the child", () => {
+  it("expands in the hand-checked FIFO order and calls IS-GOAL on the child", () => {
     expect(result.status).toBe("success");
     expect(expanded(result.trace)).toEqual([
       "0,0",
@@ -58,8 +58,25 @@ describe("breadth-first graph on the wall grid", () => {
       (event) => event.type === "goal-check" && event.isGoal,
     );
     expect(goal).toMatchObject({ when: "generate", stateKey: "3,2", phase: "done" });
-    expect(frameAt(result.trace, result.trace.length - 1).explored).not.toContain(
+    expect(goal?.vars.reached).toEqual([
+      "0,0",
+      "1,0",
+      "0,1",
+      "2,0",
+      "0,2",
+      "3,0",
+      "2,1",
+      "1,2",
+      "3,1",
+      "2,2",
+    ]);
+    expect(goal?.vars.reached).toContain("2,2");
+    expect(goal?.vars.reached).not.toContain("3,2");
+    expect(frameAt(result.trace, result.trace.length - 1).reached).not.toContain(
       "3,2",
+    );
+    expect(frameAt(result.trace, result.trace.length - 1).reached).toContain(
+      "2,2",
     );
   });
 });
@@ -89,52 +106,60 @@ describe("depth-first graph on the wall grid", () => {
       (event) => event.type === "goal-check" && event.isGoal,
     );
     expect(goal).toMatchObject({ when: "pop", stateKey: "3,2", phase: "done" });
-    expect(frameAt(result.trace, result.trace.length - 1).explored).not.toContain(
+    expect(goal?.vars.reached).toContain("3,2");
+    expect(frameAt(result.trace, result.trace.length - 1).reached).toContain(
       "3,2",
     );
   });
 });
 
-describe("tree search on the wall grid", () => {
-  it("breadth-first matches graph search for the first four expansions, then repeats the start", () => {
+describe("tree-like search on the wall grid", () => {
+  it("breadth-first skips the cycle back to the start and keeps no reached table", () => {
     const result = breadthFirstTreeSearch(grid, { expansionLimit: 6 });
-    expect(expanded(result.trace).slice(0, 5)).toEqual([
+    expect(expanded(result.trace).slice(0, 4)).toEqual([
       "0,0",
       "1,0",
       "0,1",
       "2,0",
-      "0,0",
     ]);
-    expect(
-      result.trace.some(
-        (event) => event.phase === "repeated-state" && event.vars.repeated,
-      ),
-    ).toBe(true);
-    const repeat = result.trace.find((event) => event.vars.repeated);
-    expect(repeat?.vars.explored).toBeNull();
-    expect(plainEnglish(repeat!)).toContain(
-      "Repeated state — tree search does not detect this",
+    expect(expanded(result.trace).filter((key) => key === "0,0")).toEqual(["0,0"]);
+    const cycle = result.trace.find(
+      (event) => event.type === "frontier-skip" && event.reason === "cycle",
     );
+    expect(cycle).toMatchObject({ stateKey: "0,0" });
+    expect(cycle?.vars.reached).toBeNull();
+    expect(plainEnglish(cycle!)).toContain("IS-CYCLE is true");
+    expect(plainEnglish(cycle!)).toContain("no reached table");
   });
 
-  it("depth-first plunges south, then generates a state it already saw", () => {
-    const result = depthFirstTreeSearch(grid, { expansionLimit: 8 });
-    expect(result.status).toBe("cutoff");
-    expect(expanded(result.trace).slice(0, 5)).toEqual([
+  it("depth-first terminates by IS-CYCLE and does not hit the safety cap", () => {
+    const open = depthFirstTreeSearch(grid);
+    const capped = depthFirstTreeSearch(grid, { expansionLimit: 8 });
+    expect(open.status).toBe("success");
+    expect(open.cost).toBe(5);
+    expect(open.trace.some((event) => event.type === "cutoff")).toBe(false);
+    expect(capped.status).toBe("success");
+    expect(
+      capped.trace.some(
+        (event) => event.type === "cutoff" && event.reason === "expansion",
+      ),
+    ).toBe(false);
+    expect(expanded(open.trace)).toEqual([
       "0,0",
       "0,1",
       "0,2",
       "1,2",
-      "0,2",
+      "2,2",
     ]);
-    const repeat = result.trace.find(
-      (event) => event.type === "frontier-add" && event.vars.repeated,
+    const cycle = open.trace.find(
+      (event) =>
+        event.type === "frontier-skip" &&
+        event.reason === "cycle" &&
+        event.stateKey === "0,2",
     );
-    expect(repeat).toBeTruthy();
-    expect(examNotation(repeat!)).toContain(
-      "Repeated state — tree search does not detect this",
-    );
-    expect(examNotation(repeat!)).toContain("Explored: — (tree search keeps none)");
+    expect(cycle).toBeTruthy();
+    expect(examNotation(cycle!)).toContain("IS-CYCLE = true");
+    expect(examNotation(cycle!)).toContain("Reached: — (tree-like search keeps none)");
   });
 });
 
@@ -150,13 +175,13 @@ describe("explanations are computed from the step", () => {
       expect(text).toContain(neighbor);
     }
     expect(examNotation(expand!)).toContain(
-      `Explored: {${expand!.vars.explored?.join(", ")}}`,
+      `Reached: {${expand!.vars.reached?.join(", ")}}`,
     );
     expect(examNotation(expand!)).toContain("depth 0");
   });
 });
 
-describe("tree search re-expands and graph search does not", () => {
+describe("tree-like search re-expands and graph search does not", () => {
   it("breadth-first on the wall grid solves either way, and only the tree repeats a state", () => {
     const tree = breadthFirstTreeSearch(grid, { expansionLimit: 800 });
     const graph = breadthFirstGraphSearch(grid);
@@ -183,11 +208,16 @@ describe("tree search re-expands and graph search does not", () => {
     const graphCut = depthLimitedSearch(grid, 3, "graph");
     expect(treeCut.status).toBe("cutoff");
     expect(graphCut.status).toBe("cutoff");
-    expect(repeatsAState(expanded(treeCut.trace))).toBe(true);
+    expect(repeatsAState(expanded(treeCut.trace))).toBe(false);
+    expect(
+      treeCut.trace.some(
+        (event) => event.type === "frontier-skip" && event.reason === "cycle",
+      ),
+    ).toBe(true);
     expect(repeatsAState(expanded(graphCut.trace))).toBe(false);
     expect(
       graphCut.trace.some(
-        (event) => event.type === "frontier-skip" && event.reason === "explored",
+        (event) => event.type === "frontier-skip" && event.reason === "reached",
       ),
     ).toBe(true);
 
@@ -220,8 +250,8 @@ const deadEnd: Problem<string, string> = {
   initial: "S",
   actions: (state) => (state === "S" ? ["A"] : []),
   result: (_state, action) => action,
-  stepCost: () => 1,
-  goalTest: (state) => state === "G",
+  actionCost: () => 1,
+  isGoal: (state) => state === "G",
   stateKey: (state) => state,
 };
 
@@ -285,25 +315,15 @@ describe("iterative deepening on the wall grid", () => {
       "0,0",
       "1,0",
       "2,0",
-      "0,0",
       "0,1",
-      "0,0",
       "0,2",
       "0,0",
       "1,0",
       "2,0",
       "3,0",
       "2,1",
-      "1,0",
-      "0,0",
-      "1,0",
-      "0,1",
-      "0,1",
-      "0,0",
-      "1,0",
       "0,1",
       "0,2",
-      "0,1",
       "1,2",
       "0,0",
       "1,0",
@@ -366,7 +386,9 @@ describe("best-first graph search", () => {
       "Fagaras",
       "Pitesti",
     ]);
-    expect(astar.trace.at(-1)?.vars.explored).not.toContain("Bucharest");
+    expect(astar.trace.at(-1)?.vars.reached).toContain("Bucharest");
+    expect(astar.trace.at(-1)?.vars.reachedCost?.Oradea).toBe(291);
+    expect(expanded(astar.trace)).not.toContain("Zerind");
   });
 
   it("prints f = g + h, keeps the frontier sorted, and relaxes a worse path", () => {
@@ -439,7 +461,7 @@ describe("best-first graph search", () => {
       (event) => event.type === "generate" && event.stateKey === "Sibiu",
     );
     expect(sibiu && examNotation(sibiu)).toContain(
-      "g(Sibiu) = g(Arad) + 140 = 140",
+      "g(Sibiu) = PATH-COST = g(Arad) + ACTION-COST = 0 + 140 = 140",
     );
     expect(sibiu && examNotation(sibiu)).not.toContain("g + h");
 

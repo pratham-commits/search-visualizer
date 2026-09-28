@@ -27,13 +27,15 @@ test("final frame highlights the hand-checked path and no contradictory marks", 
     const cell = cells.nth(i);
     const wall = await cell.getAttribute("data-wall");
     const onPath = await cell.getAttribute("data-path");
-    const explored = await cell.getAttribute("data-explored");
+    const reached = await cell.getAttribute("data-reached");
     const frontier = await cell.getAttribute("data-frontier");
     if (wall === "true") {
       expect(onPath).not.toBe("true");
-      expect(explored).not.toBe("true");
+      expect(reached).not.toBe("true");
       expect(frontier).not.toBe("true");
     }
-    expect(explored === "true" && frontier === "true").toBe(false);
+    if (wall !== "true") {
+      expect(onPath === "true" && frontier === "true").toBe(false);
+    }
   }
 });

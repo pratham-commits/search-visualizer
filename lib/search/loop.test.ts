@@ -14,12 +14,12 @@ function roads(
     initial: "S",
     actions: (state) => (edges[state] ?? []).map((edge) => edge.to),
     result: (_state, action) => action,
-    stepCost(state, action) {
+    actionCost(state, action) {
       const edge = (edges[state] ?? []).find((item) => item.to === action);
       if (!edge) throw new Error(`missing edge ${state} -> ${action}`);
       return edge.cost;
     },
-    goalTest: (state) => state === goal,
+    isGoal: (state) => state === goal,
     stateKey: (state) => state,
   };
 }
@@ -29,7 +29,7 @@ function policy(
 ): SearchPolicy<string, string> {
   return {
     mode: "tree",
-    goalTest: "pop",
+    isGoalWhen: "pop",
     replaceFrontier: "never",
     f: (node) => node.pathCost,
     ...overrides,
@@ -95,7 +95,7 @@ describe("trace", () => {
     const frame = frameAt(result.trace, index);
     expect(frame.frontier.map((item) => item.stateKey)).toEqual(["A", "B", "C"]);
     expect(frame.frontier).toEqual(event.frontier);
-    expect(frame.explored).toEqual(["S"]);
+    expect(frame.reached).toEqual(["S"]);
     expect(frame.status).toBe("running");
 
     const end = frameAt(result.trace, result.trace.length - 1);
@@ -104,16 +104,16 @@ describe("trace", () => {
     expect(end.cost).toBe(result.cost);
   });
 
-  it("goal-tests on generate without popping the goal, and on pop without expanding it", () => {
+  it("calls IS-GOAL on generate without popping the goal, and on pop without expanding it", () => {
     const generated = search(
       branch,
       new FifoFrontier(branch.stateKey),
-      policy({ goalTest: "generate" }),
+      policy({ isGoalWhen: "generate" }),
     );
     const popped = search(
       branch,
       new FifoFrontier(branch.stateKey),
-      policy({ goalTest: "pop" }),
+      policy({ isGoalWhen: "pop" }),
     );
 
     const generatedGoal = generated.trace.find(
@@ -126,11 +126,11 @@ describe("trace", () => {
     expect(poppedGoal).toMatchObject({ type: "goal-check", when: "pop", stateKey: "G" });
     expect(pops(generated.trace)).not.toContain("G");
     expect(pops(popped.trace)).toContain("G");
-    expect(frameAt(generated.trace, generated.trace.length - 1).explored).not.toContain("G");
-    expect(frameAt(popped.trace, popped.trace.length - 1).explored).not.toContain("G");
+    expect(frameAt(generated.trace, generated.trace.length - 1).reached).not.toContain("G");
+    expect(frameAt(popped.trace, popped.trace.length - 1).reached).not.toContain("G");
   });
 
-  it("graph mode skips an explored state that tree mode expands again", () => {
+  it("graph mode skips a reached state; tree-like search skips only a cycle on the path", () => {
     const cycle = roads({
       S: [{ to: "A", cost: 1 }],
       A: [
@@ -151,12 +151,44 @@ describe("trace", () => {
     );
 
     expect(pops(graph.trace)).toEqual(["S", "A", "G"]);
-    expect(pops(tree.trace)).toEqual(["S", "A", "S", "G"]);
+    expect(pops(tree.trace)).toEqual(["S", "A", "G"]);
     expect(
       graph.trace.some(
-        (event) => event.type === "frontier-skip" && event.reason === "explored",
+        (event) => event.type === "frontier-skip" && event.reason === "reached",
       ),
     ).toBe(true);
+    expect(
+      tree.trace.some(
+        (event) => event.type === "frontier-skip" && event.reason === "cycle",
+      ),
+    ).toBe(true);
+    expect(tree.trace.every((event) => event.vars.reached === null)).toBe(true);
+
+    const fork = roads({
+      S: [
+        { to: "A", cost: 1 },
+        { to: "B", cost: 1 },
+      ],
+      A: [{ to: "C", cost: 1 }],
+      B: [{ to: "C", cost: 1 }],
+      C: [{ to: "G", cost: 1 }],
+      G: [],
+    });
+    const treeFork = search(
+      fork,
+      new FifoFrontier(fork.stateKey),
+      policy({ mode: "tree" }),
+    );
+    const graphFork = search(
+      fork,
+      new FifoFrontier(fork.stateKey),
+      policy({ mode: "graph" }),
+    );
+    const times = (trace: StepEvent[], key: string) =>
+      trace.filter((event) => event.type === "expand" && event.stateKey === key)
+        .length;
+    expect(times(treeFork.trace, "C")).toBe(2);
+    expect(times(graphFork.trace, "C")).toBe(1);
   });
 
   it("replaces a frontier node when f is lower", () => {
@@ -187,7 +219,7 @@ describe("trace", () => {
   it("does not expand a node at the depth limit", () => {
     const result = search(branch, new LifoFrontier(branch.stateKey), policy({
       mode: "tree",
-      goalTest: "pop",
+      isGoalWhen: "pop",
       depthLimit: 0,
       firstActionFirst: true,
     }));

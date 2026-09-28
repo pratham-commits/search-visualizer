@@ -17,12 +17,15 @@ export function Explanation({
   labelMode?: RomaniaLabelMode;
 }) {
   if (isLocalEvent(event)) return <LocalExplanation event={event} />;
-  const explored =
-    event.vars.explored === null
-      ? "none — tree search keeps no explored set"
-      : event.vars.explored.length === 0
+  const reached = event.vars.reachedCost
+    ? Object.entries(event.vars.reachedCost)
+        .map(([key, cost]) => `${romaniaDisplay(key, labelMode)} → ${cost}`)
+        .join(", ") || "empty"
+    : event.vars.reached === null
+      ? "none — tree-like search keeps no reached table"
+      : event.vars.reached.length === 0
         ? "empty"
-        : event.vars.explored.map((key) => romaniaDisplay(key, labelMode)).join(", ");
+        : event.vars.reached.map((key) => romaniaDisplay(key, labelMode)).join(", ");
   return (
     <div className="explain-wrap">
       <div className="explain">
@@ -47,8 +50,8 @@ export function Explanation({
             </dd>
           </div>
           <div>
-            <dt>Explored</dt>
-            <dd data-live-explored="">{explored}</dd>
+            <dt>Reached</dt>
+            <dd data-live-reached="">{reached}</dd>
           </div>
           <div>
             <dt>Depth</dt>

@@ -47,8 +47,8 @@ function gridEdges(spec: GridSpec, showUnitCosts: boolean) {
         const undirected = [from, to].sort().join("|");
         if (seen.has(undirected)) continue;
         seen.add(undirected);
-        const forward = problem.stepCost(state, action, next);
-        const back = problem.stepCost(next, OPPOSITE[action], state);
+        const forward = problem.actionCost(state, action, next);
+        const back = problem.actionCost(next, OPPOSITE[action], state);
         const mx = ((x + next.x) / 2) * CELL + CELL / 2;
         const my = ((y + next.y) / 2) * CELL + CELL / 2;
         if (forward === back) {
@@ -121,7 +121,7 @@ export function GridSheet({
               role="gridcell"
               className="cell"
               data-cell={key}
-              data-explored={marks.explored ? "true" : "false"}
+              data-reached={marks.reached ? "true" : "false"}
               data-frontier={marks.frontier ? "true" : "false"}
               data-path={marks.solution ? "true" : "false"}
               data-current={marks.current ? "true" : "false"}

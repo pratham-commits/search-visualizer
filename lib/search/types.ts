@@ -2,8 +2,8 @@ export interface Problem<S, A> {
   initial: S;
   actions(state: S): A[];
   result(state: S, action: A): S;
-  stepCost(state: S, action: A, next: S): number;
-  goalTest(state: S): boolean;
+  actionCost(state: S, action: A, next: S): number;
+  isGoal(state: S): boolean;
   stateKey(state: S): string;
 }
 
@@ -17,21 +17,21 @@ export interface Node<S, A> {
 }
 
 export type SearchMode = "tree" | "graph";
-export type GoalTestWhen = "pop" | "generate";
+export type IsGoalWhen = "pop" | "generate";
 export type ReplaceFrontier = "never" | "if-lower-f";
 
 /**
  * The frontier is the only data structure that changes between algorithms.
- * Tree vs graph, when the goal is tested, and whether a cheaper frontier
+ * Tree-like vs graph, when IS-GOAL runs, and whether a cheaper frontier
  * node is replaced are book behaviors a queue cannot encode, so they sit
  * here beside it. `depthLimit` is depth-limited search: a node at that
- * depth is goal-tested and then not expanded. `firstActionFirst` pushes
+ * depth is tested with IS-GOAL and then not expanded. `firstActionFirst` pushes
  * children so the first action is popped first, matching aima-python's
  * recursive depth-limited search.
  */
 export interface SearchPolicy<S, A> {
   mode: SearchMode;
-  goalTest: GoalTestWhen;
+  isGoalWhen: IsGoalWhen;
   replaceFrontier: ReplaceFrontier;
   f: (node: Node<S, A>) => number;
   /** Optional h(n). Best-first labels and exam arithmetic read it from here. */
@@ -42,7 +42,7 @@ export interface SearchPolicy<S, A> {
    */
   scoreKind?: "g" | "h" | "g+h";
   depthLimit?: number;
-  /** Safety stop for unbounded tree search. Not part of the algorithm. */
+  /** Safety backstop. IS-CYCLE is what stops a tree-like search from looping. */
   expansionLimit?: number;
   firstActionFirst?: boolean;
 }
@@ -61,7 +61,7 @@ export type Phase =
   | "pop"
   | "examine-neighbors"
   | "generate-child"
-  | "goal-test"
+  | "is-goal"
   | "repeated-state"
   | "cutoff"
   | "restart"
@@ -80,8 +80,16 @@ export interface StepFacts {
   structure: "fifo" | "lifo" | "priority" | "none";
   vars: {
     frontier: string[];
-    /** Null when the algorithm keeps no explored set (tree search). */
-    explored: string[] | null;
+    /**
+     * Null for tree-like search, which keeps no reached table.
+     * Graph search: the states recorded so far.
+     */
+    reached: string[] | null;
+    /**
+     * Best PATH-COST for each reached state. Set for uniform-cost, greedy,
+     * and A*, where reached is a table. Null when reached is only a set.
+     */
+    reachedCost: Record<string, number> | null;
     depth: number | null;
     repeated: boolean;
     /** Depth bound for this step. Null for uninformed BFS and DFS. */
@@ -121,7 +129,7 @@ export type BareEvent =
       nodeId: number;
       stateKey: string;
       isGoal: boolean;
-      when: GoalTestWhen;
+      when: IsGoalWhen;
     }
   | {
       type: "expand";
@@ -170,7 +178,7 @@ export type BareEvent =
       type: "frontier-skip";
       nodeId: number;
       stateKey: string;
-      reason: "explored" | "worse-f" | "in-frontier";
+      reason: "reached" | "worse-f" | "in-frontier" | "cycle";
     }
   | { type: "fail" }
   | { type: "cutoff"; reason: "expansion" | "depth" }

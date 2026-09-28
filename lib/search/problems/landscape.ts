@@ -27,7 +27,7 @@ export function landscapeProblem(): LocalProblem<number> {
       return next;
     },
     value: (x) => LANDSCAPE_VALUES[x],
-    goalTest: (x) => x === global,
+    isGoal: (x) => x === global,
     key: (x) => `x:${x}`,
     coordinate: (x) => x,
     queens: () => null,

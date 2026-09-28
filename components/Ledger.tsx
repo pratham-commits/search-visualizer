@@ -2,7 +2,7 @@ import type { Frame } from "@/lib/search";
 
 export function Ledger({ frame }: { frame: Frame }) {
   return (
-    <aside className="ledger" aria-label="Frontier and explored">
+    <aside className="ledger" aria-label="Frontier and reached">
       <section>
         <h2>Frontier</h2>
         <p className="ledger-note">Next pop is the first line.</p>
@@ -24,13 +24,13 @@ export function Ledger({ frame }: { frame: Frame }) {
         )}
       </section>
       <section>
-        <h2>Explored</h2>
-        <p className="ledger-note">Marked when expanded.</p>
-        {frame.explored.length === 0 ? (
+        <h2>Reached</h2>
+        <p className="ledger-note">Recorded when a state is reached.</p>
+        {frame.reached.length === 0 ? (
           <p className="empty">none yet</p>
         ) : (
           <ol>
-            {frame.explored.map((key) => (
+            {frame.reached.map((key) => (
               <li key={key}>{key}</li>
             ))}
           </ol>

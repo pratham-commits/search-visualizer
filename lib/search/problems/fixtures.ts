@@ -9,7 +9,7 @@ import type { GridSpec } from "./grid";
  *
  * Uniform enter-cost 1. Manhattan from S to G is 5, and a 5-step route
  * still exists around the wall, so that is the optimum (not 4).
- * Hand-run of FIFO, graph mode, goal-test on pop, actions N-E-S-W:
+ * Hand-run of FIFO, graph mode, IS-GOAL on pop, actions N-E-S-W:
  * the first time G is popped its parents are
  * (0,0)-(1,0)-(2,0)-(3,0)-(3,1)-(3,2).
  */

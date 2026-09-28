@@ -1,5 +1,5 @@
 import type { Frontier } from "./frontier";
-import { childNode, createNode, nodePath } from "./node";
+import { childNode, createNode, isCycle, nodePath } from "./node";
 import type {
   BareEvent,
   FrontierItem,
@@ -18,8 +18,14 @@ export function search<S, A>(
 ): SearchResult<S, A> {
   const trace: StepEvent[] = [];
   let nextId = 1;
-  const explored = new Set<string>();
-  const seen = new Set<string>();
+  const reached = new Set<string>();
+  const bestCost = new Map<string, number>();
+  const noteCost = (key: string, g: number) => {
+    if (!policy.scoreKind) return;
+    const previous = bestCost.get(key);
+    if (previous === undefined || g < previous) bestCost.set(key, g);
+  };
+  const generated = new Set<string>();
   let expansions = 0;
   let cutoffOccurred = false;
   const score = policy.f;
@@ -57,7 +63,8 @@ export function search<S, A>(
     structure: frontier.kind,
     vars: {
       frontier: facts.frontier.map((item) => item.stateKey),
-      explored: policy.mode === "graph" ? [...explored] : null,
+      reached: policy.mode === "graph" ? [...reached] : null,
+      reachedCost: policy.scoreKind ? Object.fromEntries(bestCost) : null,
       depth: facts.depth,
       repeated: facts.repeated ?? false,
       limit: policy.depthLimit ?? null,
@@ -119,7 +126,7 @@ export function search<S, A>(
   });
   nextId += 1;
   const rootKey = keyOf(root.state);
-  seen.add(rootKey);
+  if (policy.mode === "tree") generated.add(rootKey);
 
   push(
     {
@@ -141,8 +148,8 @@ export function search<S, A>(
     },
   );
 
-  if (policy.goalTest === "generate") {
-    const isGoal = problem.goalTest(root.state);
+  if (policy.isGoalWhen === "generate") {
+    const isGoal = problem.isGoal(root.state);
     push(
       {
         type: "goal-check",
@@ -152,7 +159,7 @@ export function search<S, A>(
         when: "generate",
       },
       {
-        phase: isGoal ? "done" : "goal-test",
+        phase: isGoal ? "done" : "is-goal",
         focus: rootKey,
         examining: [],
         depth: 0,
@@ -162,7 +169,9 @@ export function search<S, A>(
     if (isGoal) return succeed(root);
   }
 
+  if (policy.mode === "graph") reached.add(rootKey);
   frontier.push(root);
+  noteCost(rootKey, root.pathCost);
   push(
     {
       type: "frontier-add",
@@ -215,8 +224,8 @@ export function search<S, A>(
       },
     );
 
-    if (policy.goalTest === "pop") {
-      const isGoal = problem.goalTest(node.state);
+    if (policy.isGoalWhen === "pop") {
+      const isGoal = problem.isGoal(node.state);
       push(
         {
           type: "goal-check",
@@ -226,7 +235,7 @@ export function search<S, A>(
           when: "pop",
         },
         {
-          phase: isGoal ? "done" : "goal-test",
+          phase: isGoal ? "done" : "is-goal",
           focus: nodeKey,
           examining: [],
           depth: node.depth,
@@ -260,7 +269,6 @@ export function search<S, A>(
       continue;
     }
 
-    if (policy.mode === "graph") explored.add(nodeKey);
     expansions += 1;
     const actions = problem.actions(node.state);
     const neighborKeys = actions.map((action) =>
@@ -282,8 +290,10 @@ export function search<S, A>(
       const child = childNode(problem, node, action, nextId);
       nextId += 1;
       const childKey = keyOf(child.state);
-      const treeRepeat = policy.mode === "tree" && seen.has(childKey);
-      seen.add(childKey);
+      const cycle = policy.mode === "tree" && isCycle(child, keyOf);
+      const otherBranch =
+        policy.mode === "tree" && !cycle && generated.has(childKey);
+      if (policy.mode === "tree") generated.add(childKey);
       push(
         {
           type: "generate",
@@ -302,18 +312,18 @@ export function search<S, A>(
           focus: nodeKey,
           examining: [childKey],
           depth: node.depth,
-          repeated: treeRepeat,
+          repeated: otherBranch,
           frontier: snap(),
         },
       );
 
-      if (policy.mode === "graph" && explored.has(childKey)) {
+      if (cycle) {
         push(
           {
             type: "frontier-skip",
             nodeId: child.id,
             stateKey: childKey,
-            reason: "explored",
+            reason: "cycle",
           },
           {
             phase: "repeated-state",
@@ -327,6 +337,27 @@ export function search<S, A>(
         continue;
       }
 
+      if (policy.isGoalWhen === "generate") {
+        const isGoal = problem.isGoal(child.state);
+        push(
+          {
+            type: "goal-check",
+            nodeId: child.id,
+            stateKey: childKey,
+            isGoal,
+            when: "generate",
+          },
+          {
+            phase: isGoal ? "done" : "is-goal",
+            focus: childKey,
+            examining: [],
+            depth: child.depth,
+            frontier: snap(),
+          },
+        );
+        if (isGoal) return succeed(child);
+      }
+
       if (policy.mode === "graph" && frontier.containsState(childKey)) {
         const incumbent = frontier.getByState(childKey);
         if (
@@ -335,6 +366,7 @@ export function search<S, A>(
           score(child) < score(incumbent)
         ) {
           frontier.replace(childKey, child);
+          noteCost(childKey, child.pathCost);
           push(
             {
               type: "frontier-replace",
@@ -382,28 +414,30 @@ export function search<S, A>(
         continue;
       }
 
-      if (policy.goalTest === "generate") {
-        const isGoal = problem.goalTest(child.state);
+      if (policy.mode === "graph" && reached.has(childKey)) {
+        // Best-first does not reopen an already-expanded state; correct for the consistent heuristics we use.
         push(
           {
-            type: "goal-check",
+            type: "frontier-skip",
             nodeId: child.id,
             stateKey: childKey,
-            isGoal,
-            when: "generate",
+            reason: "reached",
           },
           {
-            phase: isGoal ? "done" : "goal-test",
-            focus: childKey,
-            examining: [],
-            depth: child.depth,
+            phase: "repeated-state",
+            focus: nodeKey,
+            examining: [childKey],
+            depth: node.depth,
+            repeated: true,
             frontier: snap(),
           },
         );
-        if (isGoal) return succeed(child);
+        continue;
       }
 
+      if (policy.mode === "graph") reached.add(childKey);
       frontier.push(child);
+      noteCost(childKey, child.pathCost);
       const after = snap();
       push(
         {
@@ -419,11 +453,11 @@ export function search<S, A>(
           frontier: after,
         },
         {
-          phase: treeRepeat ? "repeated-state" : "generate-child",
+          phase: otherBranch ? "repeated-state" : "generate-child",
           focus: nodeKey,
           examining: [childKey],
           depth: node.depth,
-          repeated: treeRepeat,
+          repeated: otherBranch,
           frontier: after,
         },
       );

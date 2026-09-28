@@ -11,7 +11,7 @@ export function ColorLegend() {
         <span className="swatch swatch-frontier" /> frontier
       </li>
       <li>
-        <span className="swatch swatch-explored" /> explored
+        <span className="swatch swatch-reached" /> reached
       </li>
       <li>
         <span className="swatch swatch-path" /> path

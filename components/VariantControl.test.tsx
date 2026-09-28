@@ -21,25 +21,25 @@ afterEach(() => {
 describe("variant control", () => {
   it("matches the properties table and the tree to the selected variant", () => {
     render(<SearchBench />);
-    expect(document.querySelector("[data-policy-explored]")?.textContent).toBe(
-      "on pop",
+    expect(document.querySelector("[data-policy-reached]")?.textContent).toBe(
+      "reached set",
     );
     jumpToEnd();
     const graphEdges = treeEdges();
     expect(graphEdges.length).toBeGreaterThan(0);
-    expect(document.querySelector("[data-live-explored]")?.textContent).not.toContain(
-      "tree search keeps no explored set",
+    expect(document.querySelector("[data-live-reached]")?.textContent).not.toContain(
+      "tree-like search keeps no reached table",
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Tree" }));
-    expect(document.querySelector("[data-policy-explored]")?.textContent).toBe(
-      "none — tree search",
+    fireEvent.click(screen.getByRole("button", { name: "Tree-like" }));
+    expect(document.querySelector("[data-policy-reached]")?.textContent).toBe(
+      "none — tree-like search",
     );
     jumpToEnd();
     const treeRun = treeEdges();
     expect(treeRun).not.toEqual(graphEdges);
-    expect(document.querySelector("[data-live-explored]")?.textContent).toContain(
-      "tree search keeps no explored set",
+    expect(document.querySelector("[data-live-reached]")?.textContent).toContain(
+      "tree-like search keeps no reached table",
     );
   });
 
@@ -47,19 +47,19 @@ describe("variant control", () => {
     render(<SearchBench />);
     fireEvent.click(screen.getByRole("button", { name: "Uniform-cost" }));
     expect(document.querySelector("[data-variant-label]")?.textContent).toBe(
-      "graph search",
+      "Graph",
     );
-    expect(screen.queryByRole("button", { name: "Tree" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Tree-like" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Graph" })).toBeNull();
-    expect(document.querySelector("[data-policy-explored]")?.textContent).toBe(
-      "on pop",
+    expect(document.querySelector("[data-policy-reached]")?.textContent).toBe(
+      "state → best PATH-COST",
     );
 
     fireEvent.click(screen.getByRole("button", { name: "A*" }));
     expect(document.querySelector("[data-variant-label]")?.textContent).toBe(
-      "graph search",
+      "Graph",
     );
-    expect(screen.queryByRole("button", { name: "Tree" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Tree-like" })).toBeNull();
     expect(document.querySelector("[data-policy-f]")?.textContent).toBe("g + h");
   });
 

@@ -16,7 +16,7 @@ export interface TreeEdge {
 
 export interface Frame {
   index: number;
-  explored: string[];
+  reached: string[];
   frontier: FrontierItem[];
   /** Solution path only. Empty until the goal is found. */
   path: string[];
@@ -71,7 +71,7 @@ function walk(links: Map<number, Link>, id: number): string[] {
 function emptyFrame(index: number): Frame {
   return {
     index,
-    explored: [],
+    reached: [],
     frontier: [],
     path: [],
     treeEdges: [],
@@ -98,7 +98,7 @@ function emptyFrame(index: number): Frame {
 
 function clearIteration(state: {
   links: Map<number, Link>;
-  explored: string[];
+  reached: string[];
   seen: Set<string>;
   treeEdges: TreeEdge[];
   edgeKeys: Set<string>;
@@ -106,7 +106,7 @@ function clearIteration(state: {
   depths: Record<string, number>;
 }) {
   state.links.clear();
-  state.explored.length = 0;
+  state.reached.length = 0;
   state.seen.clear();
   state.treeEdges.length = 0;
   state.edgeKeys.clear();
@@ -119,7 +119,7 @@ export function frameAt(trace: StepEvent[], index: number): Frame {
 
   const last = Math.min(index, trace.length - 1);
   const links = new Map<number, Link>();
-  const explored: string[] = [];
+  const reached: string[] = [];
   const seen = new Set<string>();
   const treeEdges: TreeEdge[] = [];
   const edgeKeys = new Set<string>();
@@ -151,7 +151,7 @@ export function frameAt(trace: StepEvent[], index: number): Frame {
   };
   const drawing = {
     links,
-    explored,
+    reached,
     seen,
     treeEdges,
     edgeKeys,
@@ -178,6 +178,10 @@ export function frameAt(trace: StepEvent[], index: number): Frame {
 
     if (event.vars.depth !== null && event.focus) {
       depths[event.focus] = event.vars.depth;
+    }
+    if (event.vars.reached !== null) {
+      reached.length = 0;
+      reached.push(...event.vars.reached);
     }
 
     switch (event.type) {
@@ -229,9 +233,9 @@ export function frameAt(trace: StepEvent[], index: number): Frame {
         remember(event.stateKey, event.g, event.h, event.f);
         break;
       case "expand":
-        if (!seen.has(event.stateKey)) {
+        if (event.vars.reached === null && !seen.has(event.stateKey)) {
           seen.add(event.stateKey);
-          explored.push(event.stateKey);
+          reached.push(event.stateKey);
         }
         break;
       case "goal-check":
@@ -339,7 +343,7 @@ export function frameAt(trace: StepEvent[], index: number): Frame {
 
   return {
     index: last,
-    explored,
+    reached,
     frontier,
     path: status === "success" && goalId !== null ? walk(links, goalId) : [],
     treeEdges,
@@ -377,5 +381,6 @@ export function describeEvent(event: StepEvent): string {
     return event.birth === null ? "initial population" : `generation ${event.generation}`;
   }
   const who = event.focus ?? "—";
-  return `${event.phase} · ${who}`;
+  const phase = event.phase === "is-goal" ? "IS-GOAL" : event.phase;
+  return `${phase} · ${who}`;
 }

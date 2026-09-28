@@ -78,7 +78,7 @@ describe("Romania display labels", () => {
     expect(goal?.getAttribute("data-goal")).toBe("true");
     expect(goal?.getAttribute("data-display")).toBe("G");
     expect(problem.initial).toBe("Arad");
-    expect(problem.goalTest("Bucharest")).toBe(true);
+    expect(problem.isGoal("Bucharest")).toBe(true);
 
     jump(sibiu);
     const sibiuEvent = astar.trace[sibiu];

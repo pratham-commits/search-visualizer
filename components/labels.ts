@@ -6,7 +6,7 @@ export interface NodeLabels {
   showG: boolean;
   showF: boolean;
   showDepth: boolean;
-  /** Road or grid step costs. Uninformed search treats every step as equal. */
+  /** Road or grid action costs. Uninformed search treats every action as equal. */
   showEdgeCosts: boolean;
   /** What the frontier is sorted by, when that is a number on the node. */
   orderBy: "h" | "g" | "f" | "depth";

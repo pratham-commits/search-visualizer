@@ -1,13 +1,13 @@
 import type { Frame } from "@/lib/search";
 
 export function marksFor(key: string, frame: Frame, wall = false) {
-  const explored = frame.explored.includes(key);
+  const reached = frame.reached.includes(key);
   const frontier = frame.frontier.some((item) => item.stateKey === key);
   const solution = frame.path.includes(key);
   const current = frame.focusKey === key;
   const repeated = frame.repeatedKey === key;
   const cutoff = frame.cutoff.includes(key);
-  return { explored, frontier, solution, current, repeated, cutoff, wall };
+  return { reached, frontier, solution, current, repeated, cutoff, wall };
 }
 
 export function frontierG(key: string, frame: Frame): number | null {

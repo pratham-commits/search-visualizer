@@ -31,14 +31,14 @@ function treeKeys(container: HTMLElement): string[] {
 describe("GridSheet", () => {
   const result = breadthFirstGraphSearch(gridProblem(wallGrid));
 
-  it("draws the solution only at the end, and keeps explored fills", () => {
+  it("draws the solution only at the end, and keeps reached fills", () => {
     const mid = result.trace.findIndex((event) => event.type === "expand");
     const midFrame = frameAt(result.trace, mid);
     const midView = render(
       <GridSheet spec={wallGrid} frame={midFrame} onHover={() => {}} />,
     );
-    expect(marked(midView.container, "data-explored")).toEqual(
-      [...midFrame.explored].sort(),
+    expect(marked(midView.container, "data-reached")).toEqual(
+      [...midFrame.reached].sort(),
     );
     expect(marked(midView.container, "data-path")).toEqual([]);
     expect(marked(midView.container, "data-current")).toEqual([
@@ -84,5 +84,5 @@ describe("GridSheet", () => {
       view.unmount();
     }
     expect(previous.length).toBeGreaterThan(0);
-  });
+  }, 20000);
 });

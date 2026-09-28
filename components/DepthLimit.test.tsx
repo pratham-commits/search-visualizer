@@ -30,7 +30,7 @@ describe("depth-limited rendering", () => {
   const result = depthLimitedSearch(grid, 1);
   const end = frameAt(result.trace, result.trace.length - 1);
 
-  it("marks cutoff nodes apart from explored nodes and shows L", () => {
+  it("marks cutoff nodes apart from reached nodes and shows L", () => {
     const view = render(
       <>
         <LimitNote frame={end} />
@@ -45,7 +45,7 @@ describe("depth-limited rendering", () => {
     expect(cutoff).toEqual(["0,1", "1,0"]);
     for (const key of cutoff) {
       const cell = view.container.querySelector(`[data-cell="${key}"]`);
-      expect(cell?.getAttribute("data-explored")).toBe("false");
+      expect(cell?.getAttribute("data-reached")).toBe("false");
     }
     expect(view.container.querySelector("[data-limit]")?.textContent).toContain(
       "Limit L = 1",

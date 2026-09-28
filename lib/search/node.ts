@@ -16,9 +16,23 @@ export function childNode<S, A>(
     state,
     parent,
     action,
-    pathCost: parent.pathCost + problem.stepCost(parent.state, action, state),
+    pathCost: parent.pathCost + problem.actionCost(parent.state, action, state),
     depth: parent.depth + 1,
   };
+}
+
+/** True when `node.STATE` already appears on the path from its parent to the root. */
+export function isCycle<S, A>(
+  node: Node<S, A>,
+  stateKey: (state: S) => string,
+): boolean {
+  const key = stateKey(node.state);
+  let ancestor = node.parent;
+  while (ancestor) {
+    if (stateKey(ancestor.state) === key) return true;
+    ancestor = ancestor.parent;
+  }
+  return false;
 }
 
 export function nodePath<S, A>(node: Node<S, A>): S[] {

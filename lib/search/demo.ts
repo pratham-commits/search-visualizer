@@ -7,11 +7,11 @@ import type { Node, Problem, SearchPolicy, SearchResult } from "./types";
 
 export type DemoProblem = "grid" | "romania";
 
-/** Demo policy: graph search, goal test when a node is popped, no replacement, f = g. */
+/** Demo policy: graph search, IS-GOAL when a node is popped, no replacement, f = PATH-COST. */
 export function demoPolicy<S, A>(): SearchPolicy<S, A> {
   return {
     mode: "graph",
-    goalTest: "pop",
+    isGoalWhen: "pop",
     replaceFrontier: "never",
     f: (node: Node<S, A>) => node.pathCost,
   };

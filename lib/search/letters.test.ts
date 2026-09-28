@@ -36,7 +36,7 @@ describe("Romania letter labels", () => {
     const problem = romaniaProblem();
     const heuristic = (city: City) => ROMANIA_SLD[city];
     expect(problem.initial).toBe("Arad");
-    expect(problem.goalTest("Bucharest")).toBe(true);
+    expect(problem.isGoal("Bucharest")).toBe(true);
     expect(romaniaDisplay(problem.initial, "letters")).toBe("S");
     expect(romaniaDisplay("Bucharest", "letters")).toBe("G");
     expect(romaniaDisplay(problem.initial, "cities")).toBe("Arad");

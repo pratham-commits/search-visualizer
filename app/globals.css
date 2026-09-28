@@ -10,8 +10,8 @@
   --margin-rule: #c44536;
   --frontier: #1a3f78;
   --frontier-wash: #d5e2f3;
-  --explored: #5c564c;
-  --explored-wash: #e3d9c6;
+  --reached: #5c564c;
+  --reached-wash: #e3d9c6;
   --path: #9d2c22;
   --path-wash: #f3d2cb;
   --tree: #2a6b45;
@@ -33,7 +33,7 @@
   --color-paper: var(--paper);
   --color-ink: var(--ink);
   --color-frontier: var(--frontier);
-  --color-explored: var(--explored);
+  --color-reached: var(--reached);
   --color-path: var(--path);
   --color-wall: var(--wall);
 }
@@ -112,6 +112,13 @@ h1 {
   margin: 16px 0 0;
   color: var(--ink-soft);
   font-size: 0.98rem;
+}
+
+.ucs-subtitle {
+  margin: 4px 0 0;
+  color: var(--ink-soft);
+  font-family: var(--font-plex-mono);
+  font-size: 0.82rem;
 }
 
 .policy {
@@ -341,13 +348,13 @@ legend {
   color: var(--cutoff);
 }
 
-.cell[data-cutoff="true"]:not([data-explored="true"]) {
+.cell[data-cutoff="true"]:not([data-reached="true"]) {
   background: var(--cutoff-wash);
   box-shadow: inset 0 0 0 1.5px var(--cutoff);
 }
 
-.cell[data-explored="true"] {
-  background-color: var(--explored-wash);
+.cell[data-reached="true"] {
+  background-color: var(--reached-wash);
   background-image: repeating-linear-gradient(
     45deg,
     transparent 0 6px,
@@ -430,8 +437,8 @@ legend {
   box-shadow: inset 0 0 0 1.5px var(--frontier);
 }
 
-.swatch-explored {
-  background-color: var(--explored-wash);
+.swatch-reached {
+  background-color: var(--reached-wash);
   background-image: repeating-linear-gradient(
     45deg,
     transparent 0 4px,
@@ -588,9 +595,9 @@ legend {
   stroke-width: 2;
 }
 
-.city[data-explored="true"] circle {
-  fill: var(--explored-wash);
-  stroke: var(--explored);
+.city[data-reached="true"] circle {
+  fill: var(--reached-wash);
+  stroke: var(--reached);
 }
 
 .city[data-cutoff="true"] circle {
@@ -915,7 +922,7 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .square[data-dark="true"] {
-  background: var(--explored-wash);
+  background: var(--reached-wash);
 }
 
 .square[data-attack="true"] {

@@ -79,12 +79,12 @@ function focusFormula(event: StepEvent, mode: RomaniaLabelMode): string | null {
   }
   if (event.type === "generate" || event.type === "frontier-add") {
     if (event.parentG === null || event.focus === null) {
-      return `g(${name}) = ${event.g}`;
+      return `g(${name}) = PATH-COST = ${event.g}`;
     }
     const step = event.g - event.parentG;
-    return `g(${name}) = g(${place(event.focus, mode)}) + ${step} = ${event.g}`;
+    return `g(${name}) = PATH-COST = g(${place(event.focus, mode)}) + ACTION-COST = ${event.parentG} + ${step} = ${event.g}`;
   }
-  return `g(${name}) = ${event.g}`;
+  return `g(${name}) = PATH-COST = ${event.g}`;
 }
 
 function frontierBit(item: FrontierItem, kind: "g" | "h" | "g+h", mode: RomaniaLabelMode): string {
@@ -187,17 +187,14 @@ export function plainEnglish(event: StepEvent, mode: RomaniaLabelMode = "cities"
       return `Popped ${focus} from the ${leavesFrom(event.structure)}.`;
     }
     case "expand":
-      if (event.vars.explored === null) {
-        return `Examining the neighbors of ${focus}: ${listed}. Tree search does not keep an explored set.`;
+      if (event.vars.reached === null) {
+        return `Examining the neighbors of ${focus}: ${listed}. Tree-like search does not keep a reached table; IS-CYCLE checks ancestors on this path.`;
       }
-      if (event.vars.scoreKind !== null) {
-        return `Marked ${place(event.focus ?? focus, mode)} explored. Examining its neighbors: ${listed}.`;
-      }
-      return `Marked ${focus} explored. Examining its neighbors: ${listed}.`;
+      return `Examining the neighbors of ${focus}: ${listed}.`;
     case "generate": {
       const formula = focusFormula(event, mode);
       if (event.vars.repeated) {
-        return `Generated ${listed} from ${focus}. Repeated state — tree search does not detect this.`;
+        return `Generated ${listed} from ${focus}. Not an ancestor on this path, so IS-CYCLE allows it. Tree-like search has no reached table, so this other branch is still explored.`;
       }
       if (formula) return `Generated ${place(event.stateKey, mode)} from ${place(event.focus ?? "", mode)}. ${formula}.`;
       return `Generated ${listed} from ${focus}.`;
@@ -209,7 +206,7 @@ export function plainEnglish(event: StepEvent, mode: RomaniaLabelMode = "cities"
     case "frontier-add": {
       const formula = focusFormula(event, mode);
       if (event.vars.repeated) {
-        return `Added ${place(event.stateKey, mode)} to the ${entersAt(event.structure)}. Repeated state — tree search does not detect this.`;
+        return `Added ${place(event.stateKey, mode)} to the ${entersAt(event.structure)}. No reached table, so this other path is kept. IS-CYCLE only skips a state already on the current path.`;
       }
       if (formula) {
         return `Added ${place(event.stateKey, mode)} to the ${entersAt(event.structure)}. ${formula}.`;
@@ -217,8 +214,11 @@ export function plainEnglish(event: StepEvent, mode: RomaniaLabelMode = "cities"
       return `Added ${place(event.stateKey, mode)} to the ${entersAt(event.structure)}.`;
     }
     case "frontier-skip":
-      if (event.reason === "explored") {
-        return `Did not add ${place(event.stateKey, mode)}. Repeated state: it is already explored.`;
+      if (event.reason === "cycle") {
+        return `Did not add ${place(event.stateKey, mode)}. IS-CYCLE is true: it is already an ancestor on this path. Tree-like search keeps no reached table, so a different branch can still reach it.`;
+      }
+      if (event.reason === "reached") {
+        return `Did not add ${place(event.stateKey, mode)}. It is already in the reached table, so graph search skips this redundant path.`;
       }
       if (event.reason === "in-frontier") {
         return `Did not add ${place(event.stateKey, mode)}. Repeated state: it is already in the frontier, and the first path is kept.`;
@@ -235,7 +235,7 @@ export function plainEnglish(event: StepEvent, mode: RomaniaLabelMode = "cities"
       if (event.reason === "depth") {
         return `The search stopped at limit ${event.vars.limit}. At least one branch reached that depth, so a solution might exist deeper (cutoff).`;
       }
-      return "Stopped at the expansion limit. Tree search has not finished, because repeated states are still generated.";
+      return "Stopped at the expansion safety cap. IS-CYCLE is what prevents cycles; this cap is only a backstop.";
     case "depth-cutoff":
       return `Node ${place(event.stateKey, mode)} is at depth ${event.depth} = the limit ${event.limit}, so we do not expand it (cutoff).`;
     case "restart":
@@ -251,8 +251,8 @@ function phaseLabel(event: StepEvent): string {
       return "Expand";
     case "generate-child":
       return "Generate";
-    case "goal-test":
-      return "Goal test";
+    case "is-goal":
+      return "IS-GOAL";
     case "repeated-state":
       return "Repeated";
     case "cutoff":
@@ -359,6 +359,17 @@ function gaExam(event: GaEvent): string {
   return lines.join("\n");
 }
 
+function formatReached(event: StepEvent, mode: RomaniaLabelMode): string {
+  if (event.vars.reachedCost) {
+    const parts = Object.entries(event.vars.reachedCost).map(
+      ([key, cost]) => `${place(key, mode)} → ${cost}`,
+    );
+    return `{${parts.join(", ")}}`;
+  }
+  if (event.vars.reached === null) return "— (tree-like search keeps none)";
+  return `{${event.vars.reached.map((key) => place(key, mode)).join(", ")}}`;
+}
+
 /** Exam-style lines a student could copy. Uses only fields on the event. */
 export function examNotation(event: StepEvent, mode: RomaniaLabelMode = "cities"): string {
   if (event.type === "climb") return climbExam(event);
@@ -378,10 +389,7 @@ export function examNotation(event: StepEvent, mode: RomaniaLabelMode = "cities"
         });
   const frontier = marked.length === 0 ? "[]" : `[${marked.join(", ")}]`;
   const formula = focusFormula(event, mode);
-  const explored =
-    event.vars.explored === null
-      ? "— (tree search keeps none)"
-      : `{${event.vars.explored.map((key) => place(key, mode)).join(", ")}}`;
+  const reached = formatReached(event, mode);
   const depth = event.vars.depth === null ? "—" : String(event.vars.depth);
   const depthNote =
     event.vars.limit === null
@@ -392,13 +400,22 @@ export function examNotation(event: StepEvent, mode: RomaniaLabelMode = "cities"
     `${phaseLabel(event)}: ${who}  (${depthNote})`,
     ...(formula ? [formula] : []),
     `Frontier: ${frontier}`,
-    `Explored: ${explored}`,
+    `Reached: ${reached}`,
   ];
   if (event.phase === "examine-neighbors") {
     lines.push(`Neighbors: {${names(event.examining, mode)}}`);
   }
-  if (event.vars.repeated && event.vars.explored === null) {
-    lines.push("Repeated state — tree search does not detect this");
+  if (event.type === "frontier-skip" && event.reason === "cycle") {
+    lines.push(
+      "IS-CYCLE = true (ancestor on this path). No reached table, so another branch can still reach this state.",
+    );
+  } else if (event.vars.repeated && event.vars.reached === null) {
+    lines.push(
+      "Not a cycle on this path. No reached table, so this other branch is still explored.",
+    );
+  }
+  if (event.type === "goal-check") {
+    lines.push(`IS-GOAL(${place(event.stateKey, mode)}) = ${event.isGoal}`);
   }
   if (event.type === "depth-cutoff" || (event.type === "cutoff" && event.reason === "depth")) {
     lines.push("Outcome: cutoff");

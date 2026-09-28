@@ -76,7 +76,7 @@ const ROADS = Object.fromEntries(
     city,
     ROMANIA.actions(city).map((to) => ({
       to,
-      cost: ROMANIA.stepCost(city, to, to),
+      cost: ROMANIA.actionCost(city, to, to),
     })),
   ]),
 ) as Record<City, RoadNote[]>;
@@ -192,18 +192,23 @@ export function SearchBench() {
         <p className="kicker">AIMA search</p>
         <h1>Search sheet</h1>
         <p className="blurb">{info.line}</p>
+        {family === "ucs" ? (
+          <p className="ucs-subtitle" data-ucs-subtitle="">
+            also known as Dijkstra&apos;s algorithm
+          </p>
+        ) : null}
         <dl className="policy">
           <div>
             <dt>Frontier</dt>
             <dd>{info.frontier}</dd>
           </div>
           <div>
-            <dt>Goal test</dt>
-            <dd>{info.goalLabel ?? (info.goalTest === "generate" ? "on generate" : "on pop")}</dd>
+            <dt>Is-Goal</dt>
+            <dd>{info.goalLabel ?? (info.isGoalWhen === "generate" ? "on generate" : "on pop")}</dd>
           </div>
           <div>
-            <dt>Explored</dt>
-            <dd data-policy-explored="">{info.explored}</dd>
+            <dt>Reached</dt>
+            <dd data-policy-reached="">{info.reached}</dd>
           </div>
           {info.f === "—" ? null : (
             <div>
@@ -343,7 +348,7 @@ export function SearchBench() {
                   setPlaying(false);
                 }}
               >
-                Tree
+                Tree-like
               </button>
               <button
                 type="button"
@@ -368,7 +373,7 @@ export function SearchBench() {
             <fieldset>
               <legend>Variant</legend>
               <p className="variant-fixed" data-variant-label="">
-                graph search
+                Graph
               </p>
             </fieldset>
           ) : null}
@@ -622,8 +627,8 @@ function CellReadout({
     ? "cutoff"
     : frame.frontier.some((item) => item.stateKey === cellKey)
       ? "frontier"
-      : frame.explored.includes(cellKey)
-        ? "explored"
+      : frame.reached.includes(cellKey)
+        ? "reached"
         : frame.path.includes(cellKey)
           ? "solution"
           : "open";
@@ -632,7 +637,7 @@ function CellReadout({
       <>
         <p className="readout-title">{problemId === "landscape" ? "Landscape" : "8 queens"}</p>
         <p>value {frame.objective ?? "—"}</p>
-        <p>No frontier, no explored set, no g/h/f.</p>
+        <p>No frontier, no reached table, no g/h/f.</p>
       </>
     );
   }
@@ -679,7 +684,7 @@ function CellReadout({
         {labels.showG && g !== undefined ? ` · g ${g}` : ""}
         {frame.limit !== null ? ` · limit ${frame.limit}` : ""}
       </p>
-      {labels.showEdgeCosts && cost !== null && !wall ? <p>enter cost {cost}</p> : null}
+      {labels.showEdgeCosts && cost !== null && !wall ? <p>action cost {cost}</p> : null}
     </>
   );
 }

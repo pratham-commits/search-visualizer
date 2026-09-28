@@ -7,7 +7,7 @@ export type {
   FrontierItem,
   GaEvent,
   GaIndividual,
-  GoalTestWhen,
+  IsGoalWhen,
   Node,
   Phase,
   Problem,
@@ -18,7 +18,7 @@ export type {
   StepEvent,
   StepFacts,
 } from "./types";
-export { childNode, createNode, nodePath } from "./node";
+export { childNode, createNode, isCycle, nodePath } from "./node";
 export {
   FifoFrontier,
   LifoFrontier,

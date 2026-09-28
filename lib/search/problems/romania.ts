@@ -184,14 +184,14 @@ export function romaniaProblem(
     result(_state, action) {
       return action;
     },
-    stepCost(state, action) {
+    actionCost(state, action) {
       const road = (ROADS[state] ?? []).find((item) => item.to === action);
       if (!road) {
         throw new Error(`No road from ${state} to ${action}`);
       }
       return road.cost;
     },
-    goalTest(state) {
+    isGoal(state) {
       return state === goal;
     },
     stateKey(state) {

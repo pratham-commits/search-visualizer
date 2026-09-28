@@ -57,7 +57,7 @@ export function queensProblem(n = 8): LocalProblem<number[]> {
       return next;
     },
     value: nonAttackingPairs,
-    goalTest: (state) => nonAttackingPairs(state) === queenPairs(n),
+    isGoal: (state) => nonAttackingPairs(state) === queenPairs(n),
     key: queensKey,
     coordinate: () => null,
     queens: (state) => state.slice(),

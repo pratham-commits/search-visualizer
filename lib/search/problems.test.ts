@@ -34,7 +34,7 @@ describe("wall grid", () => {
     });
     expect(enterCost(wallGrid, { x: 1, y: 0 })).toBe(1);
     expect(
-      weighted.stepCost({ x: 2, y: 0 }, "E", { x: 3, y: 0 }),
+      weighted.actionCost({ x: 2, y: 0 }, "E", { x: 3, y: 0 }),
     ).toBe(7);
   });
 
@@ -77,8 +77,8 @@ describe("Romania map", () => {
       ["Bucharest", "Urziceni", 85],
     ];
     for (const [from, to, cost] of roads) {
-      expect(problem.stepCost(from as "Arad", to as "Arad", to as "Arad")).toBe(cost);
-      expect(problem.stepCost(to as "Arad", from as "Arad", from as "Arad")).toBe(cost);
+      expect(problem.actionCost(from as "Arad", to as "Arad", to as "Arad")).toBe(cost);
+      expect(problem.actionCost(to as "Arad", from as "Arad", from as "Arad")).toBe(cost);
     }
   });
 

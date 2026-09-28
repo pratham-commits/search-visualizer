@@ -42,7 +42,7 @@ describe("edge and node labels", () => {
     expect(arad?.textContent).not.toContain("h");
   });
 
-  it("draws Romania step costs, static h, and A* f = g + h in sync with the exam line", () => {
+  it("draws Romania action costs, static h, and A* f = g + h in sync with the exam line", () => {
     const problem = romaniaProblem();
     const astar = aStarSearch(problem, (city) => ROMANIA_SLD[city]);
     const sibiu = astar.trace.findIndex(
@@ -60,7 +60,7 @@ describe("edge and node labels", () => {
     for (const chip of chips) {
       const from = chip.getAttribute("data-from") as City;
       const to = chip.getAttribute("data-to") as City;
-      const cost = problem.stepCost(from, to, to);
+      const cost = problem.actionCost(from, to, to);
       expect(chip.getAttribute("data-edge-cost")).toBe(String(cost));
       expect(chip.textContent).toContain(String(cost));
     }
