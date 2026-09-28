@@ -8,7 +8,7 @@ The sheet picks an algorithm, then a variant. Breadth-first and depth-first togg
 
 `lib/search` is plain TypeScript. It does not import React or touch the DOM.
 
-`Problem` has `initial`, `actions`, `result`, `actionCost` (`ACTION-COST`), `isGoal` (`IS-GOAL`), and `stateKey`. A heuristic is not part of the problem. Callers pass `f` on the policy. `g(n)` is `PATH-COST`. The demo uses `f(n) = g`.
+`Problem` has `initial`, `actions`, `result`, `actionCost` (`ACTION-COST`), `isGoal` (`IS-GOAL`), and `stateKey`. A heuristic is not part of the problem. Callers pass `f` on the policy. `g(n)` is `PATH-COST`. Uninformed search does not order by it: the sheet shows FIFO or LIFO order, and depth on each node. Uniform-cost, greedy, and A* order by `PATH-COST`, `h`, and `g + h`.
 
 `Node` carries `id`, `state`, `parent`, `action`, `pathCost` (`g`), and `depth`. Ids are per run, so a tree-like search can visit one state as two nodes.
 
@@ -28,11 +28,11 @@ Shared operations: `push`, `pop`, `isEmpty`, `containsState`, `replace`, `toArra
 
 A queue cannot express tree-like versus graph search, or IS-GOAL on pop versus on generation. Those sit on `SearchPolicy`:
 
-- `mode`: `tree` or `graph`. Graph search puts the initial state in `reached`, then adds a state when a child is generated and is not already there. That set is the initial state plus every state added to the frontier. Uniform-cost, greedy, and A* also keep `reached` as a table of state → best `PATH-COST`, written when the state is first reached and replaced when a cheaper path is still in the frontier. An already-expanded state is not reopened.
+- `mode`: `tree` or `graph`. Graph search puts the initial state in `reached`, then adds a state when a child is generated and is not already there. That set is the initial state plus every state added to the frontier. Uniform-cost, greedy, and A* also keep `reached` as a table of state → best `PATH-COST`, written when the state is first reached and replaced when a cheaper path is still in the frontier. An already-expanded state is pushed again when a cheaper `PATH-COST` turns up.
 - `isGoalWhen`: `pop` or `generate`. A goal is not expanded. Breadth-first graph search calls IS-GOAL when a child is generated.
 - `replaceFrontier`: `never`, or `if-lower-f` (graph mode only). Replacement compares `f`, not `g` alone.
-- `f`: defaults to `g` (`PATH-COST`) in the demo. Uniform-cost uses `PATH-COST`, greedy uses `h`, and A* uses `g + h`.
-- `depthLimit`: depth-limited search. A popped node at that depth fails IS-GOAL and is not expanded; the result is the `cutoff` sentinel. If the frontier empties with no cutoff, the result is failure. Tree-like search uses IS-CYCLE instead of a reached table. `firstActionFirst` makes the first action the next pop.
+- `f`: unused for uninformed search, which orders by the queue. Uniform-cost uses `PATH-COST`, greedy uses `h`, and A* uses `g + h`.
+- `depthLimit`: depth-limited search. A popped node deeper than ℓ fails IS-GOAL and is not expanded. A node at depth ℓ is expanded; its children hit the cutoff. If the frontier empties with no cutoff, the result is failure. Tree-like search uses IS-CYCLE instead of a reached table. `firstActionFirst` makes the first action the next pop.
 - `expansionLimit`: a safety backstop, not part of the algorithm. IS-CYCLE is what stops tree-like search from looping. The sheet still caps depth-first tree-like search at 12 expansions and breadth-first tree-like search at 400.
 
 Breadth-first uses a FIFO queue. Depth-first uses a LIFO stack. Graph search keeps a global `reached` table and skips every redundant path. Tree-like search keeps none: IS-CYCLE(node) walks ancestors and skips a state already on the current path, but another branch can still reach that state. Breadth-first graph search calls IS-GOAL when a child is generated, before the reached check. The other uninformed searches call IS-GOAL on pop. Iterative deepening raises the depth limit from 0 upward and restarts after each cutoff. Uniform-cost, greedy best-first, and A* are BEST-FIRST-SEARCH with `f` equal to PATH-COST, `h`, and `g + h`. EXPAND generates the successors.
@@ -85,9 +85,9 @@ npm run dev
 | 2 | Breadth-first graph | FIFO | queue order | reached set, written when a state is generated | on generate | wall grid path above, cost 5 |
 | 3 | Depth-first tree-like | LIFO | stack order | none; IS-CYCLE on the path | on pop | wall grid; terminates without the safety cap |
 | 4 | Depth-first graph | LIFO | stack order | reached set, first path kept | on pop | wall grid path `0,0 0,1 0,2 1,2 2,2 3,2` |
-| 5 | Depth-limited tree-like | LIFO, first action popped first | unused | none; IS-CYCLE; `cutoff` at ℓ | on pop, then stop at depth ℓ | wall grid: ℓ=1 cutoff after expanding `0,0`; ℓ=5 path `0,0 1,0 2,0 3,0 3,1 3,2` |
+| 5 | Depth-limited tree-like | LIFO, first action popped first | unused | none; IS-CYCLE; `cutoff` past ℓ | on pop, then expand a node at depth ℓ | wall grid: ℓ=1 expands `0,0 1,0 0,1` and cuts off `2,0` and `0,2`; ℓ=5 path `0,0 1,0 2,0 3,0 3,1 3,2` |
 | 5b | Depth-limited graph | same | unused | reached set, each state once | same | same limit; a repeated state is skipped instead of expanded |
-| 6 | Iterative deepening tree-like | same, restarted each ℓ | unused | none, cleared every iteration | same as depth-limited | wall grid, ℓ = 0…5, same shallowest path; nodes expanded again are counted |
+| 6 | Iterative deepening tree-like | same, restarted each ℓ | unused | none, cleared every iteration | same as depth-limited | wall grid, ℓ = 0…4, same shallowest path; nodes expanded again are counted |
 | 6b | Iterative deepening graph | same | unused | reached set, each state once per iteration | same | a new iteration still starts over; inside one limit a state is expanded once |
 | 7 | Uniform-cost (Dijkstra) | priority queue by PATH-COST | g | state → best PATH-COST | on pop | Romania Arad→Bucharest cost 418; a worse frontier node is replaced |
 | 8 | Greedy best-first | priority queue by h | h | state → best PATH-COST | on pop | Romania Arad–Sibiu–Fagaras–Bucharest, cost 450 |
